@@ -1,19 +1,20 @@
-# vgNoise
+# vgMath
 
-A high-performance procedural noise generation library for Python, compatible with Godot's FastNoiseLite parameters.
+A math library for Python including procedural noise generation, matrix operations, and more.
 
 ## Features
 
 - **Multiple noise algorithms**: Perlin, OpenSimplex, Simplex Smooth, Cellular (Worley/Voronoi), Value, Value Cubic
 - **Fractal noise support**: FBM, Ridged, Ping-Pong with configurable octaves
+- **Matrix operations**: VGMatrix2D with convolution, filters, serialization
 - **High performance**: Numba JIT compilation for parallel processing
-- **Godot compatible**: Parameter names and behavior match FastNoiseLite
-- **Easy to use**: Simple API for 2D noise generation
+- **Godot compatible**: Noise parameter names and behavior match FastNoiseLite
+- **Easy to use**: Simple API for 2D noise generation and matrix manipulation
 
 ## Installation
 
 ```bash
-pip install vgnoise
+pip install vgmath
 ```
 
 Or install from source:
@@ -27,8 +28,7 @@ pip install -e .
 ## Quick Start
 
 ```python
-from vgnoise import PerlinNoise2D
-from vgnoise.enums import FractalType
+from vgmath import PerlinNoise2D, FractalType
 
 # Create a noise generator
 noise = PerlinNoise2D(

@@ -7,12 +7,24 @@ This module contains reusable custom widget classes specific to matrix editing.
 import tkinter as tk
 from tkinter import ttk
 from typing import Callable, Optional, List, Any, Tuple
+from dataclasses import dataclass
 
-# Handle both package and direct execution imports
-try:
-    from .matrix_app_config import MatrixThemeColors, EDIT_CELL_SIZE, MAX_EDITABLE_SIZE
-except ImportError:
-    from matrix_app_config import MatrixThemeColors, EDIT_CELL_SIZE, MAX_EDITABLE_SIZE
+# Local constants to avoid circular imports
+EDIT_CELL_SIZE = 40
+MAX_EDITABLE_SIZE = 16
+
+
+@dataclass
+class MatrixThemeColors:
+    """Theme colors for matrix editor (local copy to avoid circular import)."""
+    background: str = "#1e1e1e"
+    foreground: str = "#ffffff"
+    card: str = "#2d2d2d"
+    accent: str = "#4a9eff"
+    muted: str = "#808080"
+    success: str = "#4caf50"
+    warning: str = "#ff9800"
+    error: str = "#f44336"
 
 
 class MatrixCellEditor(ttk.Frame):

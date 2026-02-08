@@ -41,7 +41,7 @@ class MatrixFilters:
     All methods return NumPy arrays suitable for use with matrix convolution.
 
     Example:
-        >>> from vgnoise.matrix.filters import MatrixFilters
+        >>> from vgmath.matrix.filters import MatrixFilters
         >>> kernel = MatrixFilters.gaussian_blur(5, sigma=1.0)
         >>> filtered_matrix = matrix.convolve(kernel)
     """

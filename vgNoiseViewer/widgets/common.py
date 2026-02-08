@@ -7,12 +7,15 @@ This module contains reusable custom widget classes.
 import tkinter as tk
 from tkinter import ttk
 from typing import Callable, Optional, List, Any
+import sys
+from pathlib import Path
 
 # Handle both package and direct execution imports
 try:
-    from .config import ParameterConfig, ThemeColors
+    from ..core.config import ParameterConfig, ThemeColors
 except ImportError:
-    from config import ParameterConfig, ThemeColors
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    from core.config import ParameterConfig, ThemeColors
 
 
 # Re-export ParameterConfig for convenience

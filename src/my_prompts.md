@@ -1,1 +1,0 @@
-utiliza en el visor de matrices el visor de images con scroll y paneo que usamos en el noiseviewer, aprovechando la modularidad de los distintos componentes

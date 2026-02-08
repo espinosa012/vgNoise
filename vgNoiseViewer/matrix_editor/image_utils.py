@@ -12,16 +12,16 @@ from typing import Tuple, Optional
 import sys
 from pathlib import Path
 
-# Add parent directory to path to import vgnoise
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+# Add parent directory to path to import vgmath
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
-from vgnoise.matrix import VGMatrix2D
+from vgmath.matrix import VGMatrix2D
 
 # Handle both package and direct execution imports
 try:
-    from .matrix_app_config import MAX_DISPLAY_SIZE
+    from .config import MAX_DISPLAY_SIZE
 except ImportError:
-    from matrix_app_config import MAX_DISPLAY_SIZE
+    from matrix_editor.config import MAX_DISPLAY_SIZE
 
 
 class MatrixImageGenerator:

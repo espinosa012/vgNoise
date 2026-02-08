@@ -1,41 +1,27 @@
 """
-vgNoise Viewer - A visual noise generator tool.
-
-This package provides a graphical interface to visualize and experiment
-with different noise generation parameters compatible with Godot's FastNoiseLite.
+vgNoiseViewer - Visual tools for noise and matrix manipulation.
+This package provides graphical interfaces for:
+- Visualizing procedural noise with various algorithms
+- Creating and editing VGMatrix2D matrices
+- Applying filters and transformations
+Submodules:
+    - core: Configuration, theme, and shared utilities
+    - widgets: Reusable UI components
+    - noise_viewer: Noise visualization application
+    - matrix_editor: Matrix editing application
+    - tests: Unit tests
 """
-
-try:
-    from .app import NoiseViewer, main
-    from .config import ThemeColors, WindowConfig, ParameterConfig
-    from .theme import ThemeManager
-    from .noise_factory import NoiseGeneratorFactory, NoiseParameters
-    from .image_utils import ImageGenerator, NoiseImageRenderer
-    from .widgets import StepperControl, LabeledCombobox, LabeledSpinbox, Card, ScrollableFrame
-except ImportError:
-    # Direct execution
-    pass
-
+__version__ = "1.0.0"
+# Lazy imports to avoid circular dependencies
+def get_noise_viewer():
+    """Get the NoiseViewer application class."""
+    from .noise_viewer import NoiseViewer
+    return NoiseViewer
+def get_matrix_editor():
+    """Get the MatrixEditor application class."""
+    from .matrix_editor import MatrixEditor
+    return MatrixEditor
 __all__ = [
-    # Main application
-    "NoiseViewer",
-    "main",
-    # Configuration
-    "ThemeColors",
-    "WindowConfig",
-    "ParameterConfig",
-    # Theme
-    "ThemeManager",
-    # Noise
-    "NoiseGeneratorFactory",
-    "NoiseParameters",
-    # Image
-    "ImageGenerator",
-    "NoiseImageRenderer",
-    # Widgets
-    "StepperControl",
-    "LabeledCombobox",
-    "LabeledSpinbox",
-    "Card",
-    "ScrollableFrame",
+    "get_noise_viewer",
+    "get_matrix_editor",
 ]

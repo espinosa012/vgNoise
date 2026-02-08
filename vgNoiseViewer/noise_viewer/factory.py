@@ -6,7 +6,7 @@ This module provides a factory for creating noise generators based on type.
 
 from typing import Dict, Any, Type
 
-from vgnoise import (
+from vgmath import (
     PerlinNoise2D,
     OpenSimplexNoise2D,
     CellularNoise2D,

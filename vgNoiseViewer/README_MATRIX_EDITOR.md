@@ -8,8 +8,19 @@ A visual matrix editor and filter application for manipulating VGMatrix2D matric
 - Create matrices of various sizes (8x8 to 1024x1024)
 - Set custom default values or create empty matrices (None values)
 - Fill with random values or gradient patterns
+- **Generate from Noise**: Create matrices using procedural noise algorithms
 - Edit individual cell values by clicking on the image or entering coordinates
 - Resize existing matrices
+
+### Noise Generator
+Access via Menu: **Matrix → Generate from Noise...** or the "🌊 Generate from Noise..." button.
+
+Features:
+- All noise types: Perlin, Simplex, Value, Cellular, etc.
+- Full fractal controls: octaves, lacunarity, persistence
+- Cellular noise options: distance functions, return types
+- Real-time preview as you adjust parameters
+- Randomize seed or all parameters
 
 ### File Operations (Save/Load)
 - **Open Matrix** (Ctrl+O): Load a previously saved matrix
@@ -59,6 +70,14 @@ Common filters are available as one-click buttons for rapid prototyping.
 - **Normalize**: Automatically scales values for display
 - **Show Transparency**: Displays None values as a checkerboard pattern
 
+### Image Viewer with Zoom & Pan
+- **Mouse wheel**: Zoom in/out (centered on cursor position)
+- **Middle mouse button drag**: Pan the image
+- **Fit button**: Fit image to visible area
+- **100% button**: Reset to original size (100% zoom)
+- **Click on image**: Select pixel for value inspection
+- **Hover**: Real-time position and value display in status bar
+
 ### Undo/Redo
 Full undo/redo support with up to 50 states (Ctrl+Z / Ctrl+Y).
 
@@ -104,7 +123,7 @@ vgNoiseViewer/
 
 The filter panel automatically discovers new filters from `MatrixFilters` class. To add a new filter:
 
-1. Add a static method to `MatrixFilters` in `src/vgnoise/matrix/filters.py`
+1. Add a static method to `MatrixFilters` in `src/vgmath/matrix/filters.py`
 2. Use standard parameter names (`size`, `sigma`, `strength`, `direction`, etc.)
 3. The filter will appear in the UI automatically on next launch
 

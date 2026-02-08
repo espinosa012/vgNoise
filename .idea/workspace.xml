@@ -1,19 +1,59 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="1b3760f7-cbcd-414c-ae5d-16d36f91ad5c" name="Changes" comment="vgmatrix y refactor">
-      <change afterPath="$PROJECT_DIR$/src/vgnoise/matrix/filters.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/vgNoiseViewer/README_MATRIX_EDITOR.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/vgNoiseViewer/matrix_app.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/vgNoiseViewer/matrix_app_config.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/vgNoiseViewer/matrix_filter_panel.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/vgNoiseViewer/matrix_image_utils.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/vgNoiseViewer/matrix_widgets.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/vgNoiseViewer/test_matrix_app.py" afterDir="false" />
+    <list default="true" id="1b3760f7-cbcd-414c-ae5d-16d36f91ad5c" name="Changes" comment="vgmatrix">
+      <change afterPath="$PROJECT_DIR$/vgNoiseViewer/core/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vgNoiseViewer/matrix_editor/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vgNoiseViewer/noise_viewer/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vgNoiseViewer/run_matrix_editor.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vgNoiseViewer/run_noise_viewer.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vgNoiseViewer/tests/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vgNoiseViewer/widgets/__init__.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyproject.toml" beforeDir="false" afterPath="$PROJECT_DIR$/pyproject.toml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/my_prompts.md" beforeDir="false" afterPath="$PROJECT_DIR$/src/my_prompts.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/vgnoise/matrix/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/vgnoise/matrix/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/vgnoise/matrix/matrix2d.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/vgnoise/matrix/matrix2d.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/vgNoise.egg-info/PKG-INFO" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/vgNoise.egg-info/SOURCES.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/vgNoise.egg-info/dependency_links.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/vgNoise.egg-info/requires.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/vgNoise.egg-info/top_level.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/vgnoise/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/vgnoise/core/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/vgnoise/core/base.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/vgnoise/core/enums.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/vgnoise/generators/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/vgnoise/generators/cellular2d.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/vgnoise/generators/kernels.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/vgnoise/generators/noise2d.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/vgnoise/generators/opensimplex2d.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/vgnoise/generators/perlin2d.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/vgnoise/generators/simplexsmooth2d.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/vgnoise/generators/value2d.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/vgnoise/generators/valuecubic2d.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/vgnoise/matrix/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/vgnoise/matrix/filters.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/vgnoise/matrix/matrix2d.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/vgnoise/utils/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/vgnoise/utils/math_utils.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/vgNoiseViewer/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/vgNoiseViewer/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vgNoiseViewer/README_MATRIX_EDITOR.md" beforeDir="false" afterPath="$PROJECT_DIR$/vgNoiseViewer/README_MATRIX_EDITOR.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vgNoiseViewer/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/vgNoiseViewer/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vgNoiseViewer/app.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/vgNoiseViewer/config.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/vgNoiseViewer/image_utils.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/vgNoiseViewer/matrix_app.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/vgNoiseViewer/matrix_app_config.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/vgNoiseViewer/matrix_filter_panel.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/vgNoiseViewer/matrix_image_utils.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/vgNoiseViewer/matrix_widgets.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/vgNoiseViewer/noise_factory.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/vgNoiseViewer/noise_preset.noise.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/vgNoiseViewer/test_app.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/vgNoiseViewer/test_matrix_app.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/vgNoiseViewer/theme.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/vgNoiseViewer/widgets.py" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -71,6 +111,9 @@
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "Python.app.executor": "Run",
     "Python.matrix_app.executor": "Run",
+    "Python.noise_dialog.executor": "Run",
+    "Python.run_matrix_editor.executor": "Run",
+    "Python.run_noise_viewer.executor": "Run",
     "Python.run_viewer.executor": "Run",
     "Python.test.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
@@ -112,7 +155,7 @@
       <workItem from="1770543379963" duration="19000" />
       <workItem from="1770544035121" duration="15526000" />
       <workItem from="1770572278756" duration="59000" />
-      <workItem from="1770572353609" duration="2243000" />
+      <workItem from="1770572353609" duration="6847000" />
     </task>
     <task id="LOCAL-00001" summary="fisrt commit">
       <option name="closed" value="true" />
@@ -162,7 +205,15 @@
       <option name="project" value="LOCAL" />
       <updated>1770572433919</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="vgmatrix">
+      <option name="closed" value="true" />
+      <created>1770574699915</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1770574699915</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -172,12 +223,16 @@
     <MESSAGE value="fisrt commit" />
     <MESSAGE value="visor updated for zoom" />
     <MESSAGE value="vgmatrix y refactor" />
-    <option name="LAST_COMMIT_MESSAGE" value="vgmatrix y refactor" />
+    <MESSAGE value="vgmatrix" />
+    <option name="LAST_COMMIT_MESSAGE" value="vgmatrix" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/vgNoise$test.coverage" NAME="test Coverage Results" MODIFIED="1770483482419" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src" />
     <SUITE FILE_PATH="coverage/vgNoise$run_viewer.coverage" NAME="run_viewer Coverage Results" MODIFIED="1770544104725" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/vgNoiseViewer" />
-    <SUITE FILE_PATH="coverage/vgNoise$matrix_app.coverage" NAME="matrix_app Coverage Results" MODIFIED="1770574384802" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/vgNoiseViewer" />
+    <SUITE FILE_PATH="coverage/vgNoise$run_noise_viewer.coverage" NAME="run_noise_viewer Coverage Results" MODIFIED="1770578394446" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/vgNoiseViewer" />
+    <SUITE FILE_PATH="coverage/vgNoise$noise_dialog.coverage" NAME="noise_dialog Coverage Results" MODIFIED="1770576145786" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/vgNoiseViewer" />
+    <SUITE FILE_PATH="coverage/vgNoise$matrix_app.coverage" NAME="matrix_app Coverage Results" MODIFIED="1770576811962" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/vgNoiseViewer" />
+    <SUITE FILE_PATH="coverage/vgNoise$run_matrix_editor.coverage" NAME="run_matrix_editor Coverage Results" MODIFIED="1770578879647" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/vgNoiseViewer" />
     <SUITE FILE_PATH="coverage/vgNoise$app.coverage" NAME="app Coverage Results" MODIFIED="1770570616106" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/vgNoiseViewer" />
   </component>
   <component name="github-copilot-workspace">

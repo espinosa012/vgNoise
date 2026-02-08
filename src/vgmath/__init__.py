@@ -1,5 +1,5 @@
 """
-vgNoise - A procedural noise generation library.
+vgMath - A math library for Python.
 
 Package structure:
     - core: Base classes and enumerations

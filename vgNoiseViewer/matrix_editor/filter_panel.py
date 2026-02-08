@@ -12,19 +12,20 @@ import inspect
 import sys
 from pathlib import Path
 
-# Add parent directory to path to import vgnoise
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+# Add parent directory to path to import vgmath
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
-from vgnoise.matrix import VGMatrix2D
-from vgnoise.matrix.filters import MatrixFilters, BlurType, EdgeDetectionType
+from vgmath.matrix import VGMatrix2D
+from vgmath.matrix.filters import MatrixFilters, BlurType, EdgeDetectionType
 
 # Handle both package and direct execution imports
 try:
-    from .matrix_widgets import FilterParameterWidget, Card, ScrollableFrame
-    from .matrix_app_config import MatrixThemeColors, FilterParameterConfig
+    from ..widgets.matrix_widgets import FilterParameterWidget, Card, ScrollableFrame
+    from .config import MatrixThemeColors, FilterParameterConfig
 except ImportError:
-    from matrix_widgets import FilterParameterWidget, Card, ScrollableFrame
-    from matrix_app_config import MatrixThemeColors, FilterParameterConfig
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    from widgets.matrix_widgets import FilterParameterWidget, Card, ScrollableFrame
+    from matrix_editor.config import MatrixThemeColors, FilterParameterConfig
 
 
 class FilterInfo:

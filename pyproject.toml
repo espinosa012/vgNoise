@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "vgNoise"
+name = "vgMath"
 version = "0.1.0"
-description = "A noise generator library for Python"
+description = "A math library for Python"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
@@ -45,7 +45,7 @@ Repository = "https://github.com/virigir/vgNoise"
 where = ["src"]
 
 [tool.setuptools.package-data]
-vgnoise = ["py.typed"]
+vgmath = ["py.typed"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

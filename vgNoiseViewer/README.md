@@ -1,6 +1,50 @@
-# vgNoise Viewer
+# vgNoiseViewer
 
-A visual noise generator tool with a graphical interface for experimenting with procedural noise generation. Compatible with Godot's FastNoiseLite parameters.
+Visual tools for noise generation and matrix manipulation using vgMath.
+
+## Structure
+
+```
+vgNoiseViewer/
+├── core/                    # Shared configuration and utilities
+│   ├── config.py           # Theme colors, window config
+│   ├── theme.py            # Theme management
+│   └── image_viewer.py     # Zoomable image viewer widget
+├── widgets/                 # Reusable UI components
+│   ├── common.py           # StepperControl, LabeledCombobox, etc.
+│   └── matrix_widgets.py   # Card, StatusBar, FilterParameterWidget
+├── noise_viewer/           # Noise visualization application
+│   ├── app.py              # Main NoiseViewer class
+│   ├── factory.py          # Noise generator factory
+│   └── image_utils.py      # Noise rendering utilities
+├── matrix_editor/          # Matrix editing application
+│   ├── app.py              # Main MatrixEditor class
+│   ├── config.py           # Matrix-specific configuration
+│   ├── filter_panel.py     # Filter discovery and UI
+│   ├── image_utils.py      # Matrix rendering utilities
+│   └── noise_dialog.py     # Noise generation dialog
+├── tests/                  # Unit tests
+│   ├── test_noise_viewer.py
+│   └── test_matrix_editor.py
+├── presets/                # Preset files
+│   └── noise_preset.noise.json
+├── run_noise_viewer.py     # Launch Noise Viewer
+└── run_matrix_editor.py    # Launch Matrix Editor
+```
+
+## Running the Applications
+
+### Noise Viewer
+```bash
+cd vgNoiseViewer
+python run_noise_viewer.py
+```
+
+### Matrix Editor
+```bash
+cd vgNoiseViewer
+python run_matrix_editor.py
+```
 
 ## Features
 
@@ -82,4 +126,4 @@ python -m pytest test_app.py -v
 - PIL/Pillow
 - numpy
 - numba
-- vgnoise (parent package)
+- vgmath (parent package)

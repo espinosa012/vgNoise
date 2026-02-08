@@ -19,7 +19,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 import numpy as np
 from PIL import Image
 
-from vgnoise import PerlinNoise2D, NoiseType, FractalType
+from vgmath import PerlinNoise2D, NoiseType, FractalType
 
 
 class TestNoiseViewerInitialization(unittest.TestCase):
@@ -38,7 +38,7 @@ class TestNoiseViewerInitialization(unittest.TestCase):
 
     def setUp(self):
         """Set up each test."""
-        from app import NoiseViewer
+        from noise_viewer.app import NoiseViewer
         self.viewer = NoiseViewer(self.root)
 
     def test_window_title(self):
@@ -119,7 +119,7 @@ class TestNoiseGeneratorCreation(unittest.TestCase):
 
     def setUp(self):
         """Set up each test."""
-        from app import NoiseViewer
+        from noise_viewer.app import NoiseViewer
         self.viewer = NoiseViewer(self.root)
 
     def test_create_generator_returns_perlin_noise(self):
@@ -199,7 +199,7 @@ class TestImageGeneration(unittest.TestCase):
 
     def setUp(self):
         """Set up each test."""
-        from app import NoiseViewer
+        from noise_viewer.app import NoiseViewer
         self.viewer = NoiseViewer(self.root)
 
     def test_update_image_creates_photo_image(self):
@@ -248,7 +248,7 @@ class TestRandomSeed(unittest.TestCase):
 
     def setUp(self):
         """Set up each test."""
-        from app import NoiseViewer
+        from noise_viewer.app import NoiseViewer
         self.viewer = NoiseViewer(self.root)
 
     def test_randomize_seed_changes_seed(self):
@@ -294,7 +294,7 @@ class TestParameterValidation(unittest.TestCase):
 
     def setUp(self):
         """Set up each test."""
-        from app import NoiseViewer
+        from noise_viewer.app import NoiseViewer
         self.viewer = NoiseViewer(self.root)
 
     def test_frequency_minimum_bound(self):
@@ -346,7 +346,7 @@ class TestNoiseOutput(unittest.TestCase):
 
     def setUp(self):
         """Set up each test."""
-        from app import NoiseViewer
+        from noise_viewer.app import NoiseViewer
         self.viewer = NoiseViewer(self.root)
 
     def test_noise_values_in_valid_range(self):
@@ -407,7 +407,7 @@ class TestFractalTypes(unittest.TestCase):
 
     def setUp(self):
         """Set up each test."""
-        from app import NoiseViewer
+        from noise_viewer.app import NoiseViewer
         self.viewer = NoiseViewer(self.root)
 
     def test_fbm_produces_valid_output(self):
@@ -483,7 +483,7 @@ class TestUIComponents(unittest.TestCase):
 
     def setUp(self):
         """Set up each test."""
-        from app import NoiseViewer
+        from noise_viewer.app import NoiseViewer
         self.viewer = NoiseViewer(self.root)
 
     def test_dark_theme_colors_set(self):
@@ -522,7 +522,7 @@ class TestStepperControls(unittest.TestCase):
 
     def setUp(self):
         """Set up each test."""
-        from app import NoiseViewer
+        from noise_viewer.app import NoiseViewer
         self.viewer = NoiseViewer(self.root)
 
     def test_frequency_step_value(self):
@@ -582,7 +582,7 @@ class TestNegativeSeedHandling(unittest.TestCase):
 
     def setUp(self):
         """Set up each test."""
-        from app import NoiseViewer
+        from noise_viewer.app import NoiseViewer
         self.viewer = NoiseViewer(self.root)
 
     def test_negative_seed_does_not_crash(self):
@@ -634,7 +634,7 @@ class TestNoiseTypeChange(unittest.TestCase):
 
     def setUp(self):
         """Set up each test."""
-        from app import NoiseViewer
+        from noise_viewer.app import NoiseViewer
         self.viewer = NoiseViewer(self.root)
 
     def test_change_noise_type_to_simplex(self):
@@ -676,7 +676,7 @@ class TestNoiseTypeChange(unittest.TestCase):
 
     def test_simplex_generator_created_correctly(self):
         """Test that SIMPLEX creates OpenSimplexNoise2D generator."""
-        from vgnoise import OpenSimplexNoise2D
+        from vgmath import OpenSimplexNoise2D
 
         self.viewer.noise_type.set('SIMPLEX')
         generator = self.viewer._create_generator()
@@ -701,7 +701,7 @@ class TestNoiseTypeChange(unittest.TestCase):
 
     def test_simplex_uses_all_godot_parameters(self):
         """Test that SIMPLEX generator uses all Godot parameters."""
-        from vgnoise import OpenSimplexNoise2D
+        from vgmath import OpenSimplexNoise2D
 
         self.viewer.noise_type.set('SIMPLEX')
         self.viewer.frequency.set(0.05)
@@ -771,7 +771,7 @@ class TestPerformance(unittest.TestCase):
 
     def setUp(self):
         """Set up each test."""
-        from app import NoiseViewer
+        from noise_viewer.app import NoiseViewer
         self.viewer = NoiseViewer(self.root)
 
     def test_512x512_generation_under_threshold(self):

@@ -8,53 +8,32 @@ with different noise generation parameters compatible with Godot's FastNoiseLite
 import sys
 from pathlib import Path
 
-# Add parent directory to path to import vgnoise
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+# Add parent directory to path to import vgmath
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from typing import Optional
 import numpy as np
 
-from vgnoise.enums import NoiseType, FractalType, CellularDistanceFunction, CellularReturnType
+from vgmath import NoiseType, FractalType, CellularDistanceFunction, CellularReturnType
 
 # Handle both package and direct execution imports
 try:
-    from .config import (
-        ThemeColors,
-        WindowConfig,
-        IMAGE_SIZES,
-        MAX_DISPLAY_SIZE,
-    )
-    from .theme import ThemeManager
-    from .widgets import (
-        StepperControl,
-        LabeledCombobox,
-        LabeledSpinbox,
-        Card,
-        ScrollableFrame,
-        ParameterConfig,
-    )
-    from .noise_factory import NoiseGeneratorFactory, NoiseParameters
+    from ..core import ThemeColors, WindowConfig, ParameterConfig, IMAGE_SIZES, ThemeManager
+    from ..widgets.common import StepperControl, LabeledCombobox, LabeledSpinbox, ScrollableFrame, Card
+    from .factory import NoiseGeneratorFactory, NoiseParameters
     from .image_utils import NoiseImageRenderer
 except ImportError:
-    from config import (
-        ThemeColors,
-        WindowConfig,
-        IMAGE_SIZES,
-        MAX_DISPLAY_SIZE,
-    )
-    from theme import ThemeManager
-    from widgets import (
-        StepperControl,
-        LabeledCombobox,
-        LabeledSpinbox,
-        Card,
-        ScrollableFrame,
-        ParameterConfig,
-    )
-    from noise_factory import NoiseGeneratorFactory, NoiseParameters
-    from image_utils import NoiseImageRenderer
+    # Direct execution - add paths
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    from core import ThemeColors, WindowConfig, ParameterConfig, IMAGE_SIZES, ThemeManager
+    from widgets.common import StepperControl, LabeledCombobox, LabeledSpinbox, ScrollableFrame, Card
+    from noise_viewer.factory import NoiseGeneratorFactory, NoiseParameters
+    from noise_viewer.image_utils import NoiseImageRenderer
+
+# Constant for display
+MAX_DISPLAY_SIZE = 800
 
 
 class NoiseViewer:
@@ -799,7 +778,7 @@ class NoiseViewer:
 
     def _save_noise_preset(self) -> None:
         """Save current noise configuration to a JSON file."""
-        from vgnoise.noise2d import NoiseGenerator2D, NOISE_JSON_EXTENSION
+        from vgmath.generators import NoiseGenerator2D, NOISE_JSON_EXTENSION
 
         filepath = filedialog.asksaveasfilename(
             title="Save Noise Preset",
@@ -833,7 +812,7 @@ class NoiseViewer:
 
     def _load_noise_preset(self) -> None:
         """Load noise configuration from a JSON file."""
-        from vgnoise.noise2d import NoiseGenerator2D, NOISE_JSON_EXTENSION
+        from vgmath.generators import NoiseGenerator2D, NOISE_JSON_EXTENSION
 
         filepath = filedialog.askopenfilename(
             title="Load Noise Preset",

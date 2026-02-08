@@ -8,20 +8,24 @@ VGMatrix2D matrices, apply filters, import/export images, and visualize results.
 import sys
 from pathlib import Path
 
-# Add parent directory to path to import vgnoise
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+# Add parent directory to path to import vgmath
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from typing import Optional, Dict, Any
 import numpy as np
+from PIL import Image
 
-from vgnoise.matrix import VGMatrix2D
-from vgnoise.matrix.filters import MatrixFilters
+from vgmath.matrix import VGMatrix2D
+from vgmath.matrix.filters import MatrixFilters
 
 # Handle both package and direct execution imports
 try:
-    from .matrix_app_config import (
+    from ..core import ThemeManager, ZoomableImageViewer
+    from ..widgets.common import ScrollableFrame
+    from ..widgets.matrix_widgets import MatrixCellEditor, Card, StatusBar
+    from .config import (
         MatrixThemeColors,
         MatrixWindowConfig,
         MAX_DISPLAY_SIZE,
@@ -30,21 +34,20 @@ try:
         SUPPORTED_IMAGE_FORMATS,
         EXPORT_FORMATS,
     )
-    from .theme import ThemeManager
-    from .matrix_widgets import (
-        MatrixCellEditor,
-        ScrollableFrame,
-        Card,
-        StatusBar,
-    )
-    from .matrix_filter_panel import FilterPanel, QuickFilterBar
-    from .matrix_image_utils import (
+    from .filter_panel import FilterPanel, QuickFilterBar
+    from .image_utils import (
         MatrixImageRenderer,
         ImageToMatrixConverter,
         MatrixImageGenerator,
     )
+    from .noise_dialog import NoiseGeneratorDialog
 except ImportError:
-    from matrix_app_config import (
+    # Direct execution - add paths
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    from core import ThemeManager, ZoomableImageViewer
+    from widgets.common import ScrollableFrame
+    from widgets.matrix_widgets import MatrixCellEditor, Card, StatusBar
+    from matrix_editor.config import (
         MatrixThemeColors,
         MatrixWindowConfig,
         MAX_DISPLAY_SIZE,
@@ -53,19 +56,13 @@ except ImportError:
         SUPPORTED_IMAGE_FORMATS,
         EXPORT_FORMATS,
     )
-    from theme import ThemeManager
-    from matrix_widgets import (
-        MatrixCellEditor,
-        ScrollableFrame,
-        Card,
-        StatusBar,
-    )
-    from matrix_filter_panel import FilterPanel, QuickFilterBar
-    from matrix_image_utils import (
+    from matrix_editor.filter_panel import FilterPanel, QuickFilterBar
+    from matrix_editor.image_utils import (
         MatrixImageRenderer,
         ImageToMatrixConverter,
         MatrixImageGenerator,
     )
+    from matrix_editor.noise_dialog import NoiseGeneratorDialog
 
 
 class MatrixEditor:
@@ -100,8 +97,8 @@ class MatrixEditor:
         # State
         self._initializing = True
         self._matrix: Optional[VGMatrix2D] = None
-        self._photo_image: Optional[tk.PhotoImage] = None
-        self._image_label: Optional[ttk.Label] = None
+        self._current_pil_image: Optional[Image.Image] = None  # Current PIL image
+        self._image_viewer: Optional[ZoomableImageViewer] = None
         self._cell_editor: Optional[MatrixCellEditor] = None
         self._undo_stack: list = []
         self._redo_stack: list = []
@@ -130,8 +127,8 @@ class MatrixEditor:
 
     def _init_variables(self) -> None:
         """Initialize Tkinter variables."""
-        self.matrix_rows = tk.StringVar(value="16")
-        self.matrix_cols = tk.StringVar(value="16")
+        self.matrix_rows = tk.StringVar(value="1024")
+        self.matrix_cols = tk.StringVar(value="1024")
         self.default_value = tk.DoubleVar(value=0.5)
         self.normalize_display = tk.BooleanVar(value=True)
         self.show_transparency = tk.BooleanVar(value=True)
@@ -192,6 +189,8 @@ class MatrixEditor:
         # Matrix menu
         matrix_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Matrix", menu=matrix_menu)
+        matrix_menu.add_command(label="Generate from Noise...", command=self._show_noise_generator)
+        matrix_menu.add_separator()
         matrix_menu.add_command(label="Normalize (0-1)", command=self._normalize_matrix)
         matrix_menu.add_command(label="Clip Values (0-1)", command=self._clip_matrix)
         matrix_menu.add_command(label="Invert Values", command=self._invert_matrix)
@@ -236,7 +235,7 @@ class MatrixEditor:
     def _build_controls_panel(self, parent: ttk.Frame) -> None:
         """Build the controls panel."""
         # Container with fixed width
-        left_frame = ttk.Frame(parent, width=350)
+        left_frame = ttk.Frame(parent, width=420)
         left_frame.pack(side=tk.LEFT, fill=tk.Y, padx=(0, 10))
         left_frame.pack_propagate(False)
 
@@ -270,6 +269,7 @@ class MatrixEditor:
             state="readonly"
         )
         rows_combo.pack(side=tk.LEFT, padx=5)
+        rows_combo.bind("<<ComboboxSelected>>", self._on_size_change)
 
         ttk.Label(size_frame, text="x", style="Card.TLabel").pack(side=tk.LEFT)
 
@@ -282,6 +282,7 @@ class MatrixEditor:
             state="readonly"
         )
         cols_combo.pack(side=tk.LEFT, padx=5)
+        cols_combo.bind("<<ComboboxSelected>>", self._on_size_change)
 
         # Default value
         default_frame = ttk.Frame(card.content, style="Card.TFrame")
@@ -325,6 +326,13 @@ class MatrixEditor:
             command=self._clear_matrix,
             width=8
         ).pack(side=tk.LEFT, padx=2)
+
+        # Noise generator button
+        ttk.Button(
+            card.content,
+            text="🌊 Generate from Noise...",
+            command=self._show_noise_generator
+        ).pack(fill=tk.X, pady=5)
 
     def _build_value_editor(self, parent: ttk.Frame) -> None:
         """Build single value editor controls."""
@@ -422,7 +430,7 @@ class MatrixEditor:
         ).pack(anchor=tk.W, pady=2)
 
     def _build_image_panel(self, parent: ttk.Frame) -> None:
-        """Build the image display panel."""
+        """Build the image display panel with zoom support."""
         right_frame = ttk.Frame(parent)
         right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
@@ -448,16 +456,58 @@ class MatrixEditor:
         )
         self._stats_label.pack(side=tk.RIGHT)
 
-        # Image display
-        self._image_frame = ttk.Frame(image_container, style="Card.TFrame")
-        self._image_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        # Zoomable image viewer
+        self._image_viewer = ZoomableImageViewer(
+            image_container,
+            bg_color=self.theme_colors.card,
+            zoom_min=0.1,
+            zoom_max=10.0,
+            zoom_step=0.15,
+            on_click=self._on_viewer_click,
+            on_hover=self._on_viewer_hover,
+            on_zoom_change=self._on_zoom_change,
+        )
+        self._image_viewer.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
 
-        self._image_label = ttk.Label(self._image_frame, style="Card.TLabel")
-        self._image_label.pack(expand=True)
+        # Zoom controls bar
+        zoom_controls = ttk.Frame(image_container, style="Card.TFrame")
+        zoom_controls.pack(fill=tk.X, padx=10, pady=(0, 5))
 
-        # Bind click for value inspection
-        self._image_label.bind("<Button-1>", self._on_image_click)
-        self._image_label.bind("<Motion>", self._on_image_hover)
+        ttk.Button(
+            zoom_controls,
+            text="↶ Undo",
+            command=self._undo,
+            width=8
+        ).pack(side=tk.LEFT, padx=2)
+
+        ttk.Button(
+            zoom_controls,
+            text="↷ Redo",
+            command=self._redo,
+            width=8
+        ).pack(side=tk.LEFT, padx=2)
+
+        ttk.Separator(zoom_controls, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=8)
+
+        ttk.Button(
+            zoom_controls,
+            text="Fit",
+            command=self._fit_to_view,
+            width=6
+        ).pack(side=tk.LEFT, padx=2)
+
+        ttk.Button(
+            zoom_controls,
+            text="100%",
+            command=self._reset_zoom,
+            width=6
+        ).pack(side=tk.LEFT, padx=2)
+
+        ttk.Label(
+            zoom_controls,
+            text="Scroll: Zoom | Middle-click drag: Pan",
+            style="Muted.TLabel"
+        ).pack(side=tk.RIGHT)
 
     def _build_status_bar(self) -> None:
         """Build the status bar."""
@@ -486,6 +536,18 @@ class MatrixEditor:
             self._create_matrix(rows, cols)
         except ValueError:
             messagebox.showerror("Error", "Invalid matrix dimensions")
+
+    def _on_size_change(self, event=None) -> None:
+        """Handle size combobox change - create new matrix with new dimensions."""
+        if self._initializing:
+            return
+
+        try:
+            rows = int(self.matrix_rows.get())
+            cols = int(self.matrix_cols.get())
+            self._create_matrix(rows, cols)
+        except ValueError:
+            pass  # Ignore invalid values
 
     def _fill_random(self) -> None:
         """Fill matrix with random values."""
@@ -900,15 +962,15 @@ class MatrixEditor:
             return
 
         try:
-            # Render matrix to image
-            self._photo_image = self._renderer.render(
+            # Get PIL image from matrix (not PhotoImage)
+            self._current_pil_image = self._renderer.get_pil_image(
                 self._matrix,
                 normalize=self.normalize_display.get(),
                 show_transparency=self.show_transparency.get()
             )
 
-            # Update image label
-            self._image_label.configure(image=self._photo_image)
+            # Update the zoomable viewer
+            self._image_viewer.set_image(self._current_pil_image, reset_zoom=False)
 
             # Update info labels
             self._info_label.configure(
@@ -935,25 +997,14 @@ class MatrixEditor:
         except Exception as e:
             self._status_bar.set_message(f"Display error: {e}")
 
-    def _on_image_click(self, event) -> None:
-        """Handle click on image for value inspection."""
-        if self._matrix is None or self._photo_image is None:
+    def _on_viewer_click(self, image_x: int, image_y: int) -> None:
+        """Handle click on image viewer for value inspection."""
+        if self._matrix is None:
             return
 
-        # Calculate matrix coordinates from click position
-        img_width = self._photo_image.width()
-        img_height = self._photo_image.height()
-
-        # Get click position relative to image
-        x = event.x
-        y = event.y
-
-        # Convert to matrix coordinates
-        scale_x = self._matrix.cols / img_width
-        scale_y = self._matrix.rows / img_height
-
-        col = int(x * scale_x)
-        row = int(y * scale_y)
+        # image_x is column, image_y is row
+        row = image_y
+        col = image_x
 
         # Clamp to valid range
         row = max(0, min(row, self._matrix.rows - 1))
@@ -972,20 +1023,14 @@ class MatrixEditor:
             self.edit_value.set(f"{value:.6f}")
             self._status_bar.set_message(f"({row}, {col}): {value:.6f}")
 
-    def _on_image_hover(self, event) -> None:
-        """Handle mouse hover on image."""
-        if self._matrix is None or self._photo_image is None:
+    def _on_viewer_hover(self, image_x: int, image_y: int) -> None:
+        """Handle mouse hover on image viewer."""
+        if self._matrix is None:
             return
 
-        # Calculate matrix coordinates
-        img_width = self._photo_image.width()
-        img_height = self._photo_image.height()
-
-        scale_x = self._matrix.cols / img_width
-        scale_y = self._matrix.rows / img_height
-
-        col = int(event.x * scale_x)
-        row = int(event.y * scale_y)
+        # image_x is column, image_y is row
+        row = image_y
+        col = image_x
 
         # Clamp
         row = max(0, min(row, self._matrix.rows - 1))
@@ -997,6 +1042,18 @@ class MatrixEditor:
             self._status_bar.set_info(f"Pos: ({row}, {col}) = None")
         else:
             self._status_bar.set_info(f"Pos: ({row}, {col}) = {value:.4f}")
+
+    def _on_zoom_change(self, zoom_level: float) -> None:
+        """Handle zoom level change."""
+        pass  # Zoom label is updated by the viewer itself
+
+    def _fit_to_view(self) -> None:
+        """Fit image to the visible area."""
+        self._image_viewer.fit_to_view()
+
+    def _reset_zoom(self) -> None:
+        """Reset zoom to 100%."""
+        self._image_viewer.reset_zoom()
 
     # =========================================================================
     # Dialogs
@@ -1055,6 +1112,28 @@ class MatrixEditor:
 
         ttk.Button(dialog, text="Create", command=create).grid(
             row=3, column=0, columnspan=2, pady=20
+        )
+
+    def _show_noise_generator(self) -> None:
+        """Show dialog to generate matrix from noise."""
+        if self._matrix is None:
+            # Create a default matrix first
+            self._create_matrix(64, 64)
+
+        def on_generate(new_matrix: VGMatrix2D):
+            self._save_undo_state()
+            self._matrix = new_matrix
+            self.matrix_rows.set(str(new_matrix.rows))
+            self.matrix_cols.set(str(new_matrix.cols))
+            self._update_display()
+            self._status_bar.set_message("Generated matrix from noise")
+
+        NoiseGeneratorDialog(
+            self.root,
+            target_shape=self._matrix.shape,
+            on_generate=on_generate,
+            theme_bg=self.theme_colors.background,
+            theme_card=self.theme_colors.card,
         )
 
     def _show_resize_dialog(self) -> None:

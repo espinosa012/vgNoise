@@ -8,9 +8,9 @@ they work correctly before running the full GUI.
 import sys
 from pathlib import Path
 
-# Add parent directory to path to import vgnoise
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
-sys.path.insert(0, str(Path(__file__).parent))
+# Add paths for imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import numpy as np
 
@@ -19,12 +19,12 @@ def test_matrix_image_utils():
     """Test image utilities."""
     print("Testing Matrix Image Utils...")
 
-    from matrix_image_utils import (
+    from matrix_editor.image_utils import (
         MatrixImageGenerator,
         ImageToMatrixConverter,
         MatrixImageRenderer
     )
-    from vgnoise.matrix import VGMatrix2D
+    from vgmath.matrix import VGMatrix2D
 
     # Create a test matrix with some None values
     matrix = VGMatrix2D((10, 10), 0.5)
@@ -66,7 +66,7 @@ def test_filter_discovery():
     """Test filter discovery."""
     print("Testing Filter Discovery...")
 
-    from matrix_filter_panel import FilterDiscovery
+    from matrix_editor.filter_panel import FilterDiscovery
 
     filters = FilterDiscovery.discover_filters()
 
@@ -102,8 +102,8 @@ def test_filter_application():
     """Test applying filters to matrices."""
     print("Testing Filter Application...")
 
-    from vgnoise.matrix import VGMatrix2D
-    from vgnoise.matrix.filters import MatrixFilters
+    from vgmath.matrix import VGMatrix2D
+    from vgmath.matrix.filters import MatrixFilters
 
     # Create test matrix
     matrix = VGMatrix2D((20, 20), 0.0)
@@ -146,7 +146,7 @@ def test_widgets():
     print("Testing Widgets...")
 
     # Just verify imports work
-    from matrix_widgets import (
+    from widgets.matrix_widgets import (
         MatrixCellEditor,
         FilterParameterWidget,
         ScrollableFrame,
