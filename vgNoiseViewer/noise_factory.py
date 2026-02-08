@@ -6,7 +6,14 @@ This module provides a factory for creating noise generators based on type.
 
 from typing import Dict, Any, Type
 
-from vgnoise import PerlinNoise2D, OpenSimplexNoise2D, CellularNoise2D, ValueCubicNoise2D
+from vgnoise import (
+    PerlinNoise2D,
+    OpenSimplexNoise2D,
+    CellularNoise2D,
+    ValueCubicNoise2D,
+    ValueNoise2D,
+    SimplexSmoothNoise2D,
+)
 from vgnoise.enums import NoiseType, FractalType, CellularDistanceFunction, CellularReturnType
 
 
@@ -17,12 +24,21 @@ class NoiseGeneratorFactory:
     _generators: Dict[NoiseType, Type] = {
         NoiseType.PERLIN: PerlinNoise2D,
         NoiseType.SIMPLEX: OpenSimplexNoise2D,
+        NoiseType.SIMPLEX_SMOOTH: SimplexSmoothNoise2D,
         NoiseType.CELLULAR: CellularNoise2D,
         NoiseType.VALUE_CUBIC: ValueCubicNoise2D,
+        NoiseType.VALUE: ValueNoise2D,
     }
 
     # Currently implemented noise types
-    IMPLEMENTED_TYPES = [NoiseType.PERLIN, NoiseType.SIMPLEX, NoiseType.CELLULAR, NoiseType.VALUE_CUBIC]
+    IMPLEMENTED_TYPES = [
+        NoiseType.PERLIN,
+        NoiseType.SIMPLEX,
+        NoiseType.SIMPLEX_SMOOTH,
+        NoiseType.CELLULAR,
+        NoiseType.VALUE_CUBIC,
+        NoiseType.VALUE,
+    ]
 
     @classmethod
     def create(cls, noise_type: NoiseType, **kwargs) -> Any:

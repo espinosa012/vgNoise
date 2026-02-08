@@ -989,14 +989,14 @@ def cellular_pingpong_2d(
 
 
 # =============================================================================
-# Value Cubic 2D Kernels
+# Value 2D Kernels (Bilinear interpolation)
 # =============================================================================
 
 @njit(fastmath=True, cache=True)
-def _value_cubic_hash(seed: int, x: int, y: int) -> float:
+def _value_hash(seed: int, x: int, y: int) -> float:
     """
     Hash function that returns a value in range [-1, 1].
-    Uses a simple but effective hash based on bit manipulation.
+    Simple and fast hash for value noise.
     """
     h = seed
     h ^= x * 0x27d4eb2d
@@ -1006,103 +1006,59 @@ def _value_cubic_hash(seed: int, x: int, y: int) -> float:
     h ^= h >> 13
     h *= 0xc2b2ae35
     h ^= h >> 16
-    # Convert to [-1, 1] range
     return ((h & 0x7fffffff) / 1073741824.0) - 1.0
 
 
 @njit(fastmath=True, cache=True)
-def _cubic_interpolate(a: float, b: float, c: float, d: float, t: float) -> float:
+def _value_sample(x: float, y: float, seed: int) -> float:
     """
-    Catmull-Rom cubic interpolation.
-
-    Args:
-        a: Value at position -1
-        b: Value at position 0
-        c: Value at position 1
-        d: Value at position 2
-        t: Interpolation factor [0, 1]
-
-    Returns:
-        Interpolated value
-    """
-    p = (d - c) - (a - b)
-    q = (a - b) - p
-    r = c - a
-    s = b
-    return p * t * t * t + q * t * t + r * t + s
-
-
-@njit(fastmath=True, cache=True)
-def _value_cubic_sample(x: float, y: float, seed: int) -> float:
-    """
-    Sample Value Cubic noise at a single point using bicubic interpolation.
-
-    Uses a 4x4 grid of values with Catmull-Rom interpolation for smooth results.
+    Sample Value noise at a single point using bilinear interpolation.
     """
     # Get integer coordinates
-    x1 = int(np.floor(x))
-    y1 = int(np.floor(y))
+    x0 = int(np.floor(x))
+    y0 = int(np.floor(y))
+    x1 = x0 + 1
+    y1 = y0 + 1
 
     # Fractional parts
-    xs = x - x1
-    ys = y - y1
+    xs = x - x0
+    ys = y - y0
 
-    # Get values for 4x4 grid
-    # We need positions: (x1-1, y1-1) to (x1+2, y1+2)
+    # Smooth interpolation (quintic fade)
+    xs = xs * xs * xs * (xs * (xs * 6.0 - 15.0) + 10.0)
+    ys = ys * ys * ys * (ys * (ys * 6.0 - 15.0) + 10.0)
 
-    # Row -1 (y1-1)
-    v00 = _value_cubic_hash(seed, x1 - 1, y1 - 1)
-    v10 = _value_cubic_hash(seed, x1, y1 - 1)
-    v20 = _value_cubic_hash(seed, x1 + 1, y1 - 1)
-    v30 = _value_cubic_hash(seed, x1 + 2, y1 - 1)
+    # Get values at corners
+    v00 = _value_hash(seed, x0, y0)
+    v10 = _value_hash(seed, x1, y0)
+    v01 = _value_hash(seed, x0, y1)
+    v11 = _value_hash(seed, x1, y1)
 
-    # Row 0 (y1)
-    v01 = _value_cubic_hash(seed, x1 - 1, y1)
-    v11 = _value_cubic_hash(seed, x1, y1)
-    v21 = _value_cubic_hash(seed, x1 + 1, y1)
-    v31 = _value_cubic_hash(seed, x1 + 2, y1)
-
-    # Row 1 (y1+1)
-    v02 = _value_cubic_hash(seed, x1 - 1, y1 + 1)
-    v12 = _value_cubic_hash(seed, x1, y1 + 1)
-    v22 = _value_cubic_hash(seed, x1 + 1, y1 + 1)
-    v32 = _value_cubic_hash(seed, x1 + 2, y1 + 1)
-
-    # Row 2 (y1+2)
-    v03 = _value_cubic_hash(seed, x1 - 1, y1 + 2)
-    v13 = _value_cubic_hash(seed, x1, y1 + 2)
-    v23 = _value_cubic_hash(seed, x1 + 1, y1 + 2)
-    v33 = _value_cubic_hash(seed, x1 + 2, y1 + 2)
-
-    # Interpolate along x for each row
-    row0 = _cubic_interpolate(v00, v10, v20, v30, xs)
-    row1 = _cubic_interpolate(v01, v11, v21, v31, xs)
-    row2 = _cubic_interpolate(v02, v12, v22, v32, xs)
-    row3 = _cubic_interpolate(v03, v13, v23, v33, xs)
-
-    # Interpolate along y
-    return _cubic_interpolate(row0, row1, row2, row3, ys)
+    # Bilinear interpolation
+    v0 = v00 + xs * (v10 - v00)
+    v1 = v01 + xs * (v11 - v01)
+    return v0 + ys * (v1 - v0)
 
 
 @njit(parallel=True, fastmath=True, cache=True)
-def value_cubic_single_2d(
+def value_single_2d(
     x: NDArray[np.float64],
     y: NDArray[np.float64],
     seed: int
 ) -> NDArray[np.float64]:
-    """Generate single octave 2D Value Cubic noise (no fractal)."""
+    """Generate single octave 2D Value noise (no fractal)."""
     n = len(x)
     result = np.zeros(n, dtype=np.float64)
 
     for i in prange(n):
-        noise = _value_cubic_sample(x[i], y[i], seed)
+        noise = _value_sample(x[i], y[i], seed)
         result[i] = (noise + 1.0) * 0.5
 
     return result
 
 
 @njit(parallel=True, fastmath=True, cache=True)
-def value_cubic_fbm_2d(
+def value_fbm_2d(
     x: NDArray[np.float64],
     y: NDArray[np.float64],
     seed: int,
@@ -1111,7 +1067,7 @@ def value_cubic_fbm_2d(
     persistence: float,
     fractal_bounding: float
 ) -> NDArray[np.float64]:
-    """Generate 2D Value Cubic FBM noise."""
+    """Generate 2D Value FBM noise."""
     n = len(x)
     result = np.zeros(n, dtype=np.float64)
 
@@ -1123,7 +1079,7 @@ def value_cubic_fbm_2d(
 
         for octave in range(octaves):
             octave_seed = seed + octave * 1337
-            noise = _value_cubic_sample(xi, yi, octave_seed)
+            noise = _value_sample(xi, yi, octave_seed)
             total += noise * amp
             amp *= persistence
             xi *= lacunarity
@@ -1135,7 +1091,7 @@ def value_cubic_fbm_2d(
 
 
 @njit(parallel=True, fastmath=True, cache=True)
-def value_cubic_fbm_2d_weighted(
+def value_fbm_2d_weighted(
     x: NDArray[np.float64],
     y: NDArray[np.float64],
     seed: int,
@@ -1145,7 +1101,7 @@ def value_cubic_fbm_2d_weighted(
     weighted_strength: float,
     fractal_bounding: float
 ) -> NDArray[np.float64]:
-    """Generate 2D Value Cubic FBM noise with weighted strength."""
+    """Generate 2D Value FBM noise with weighted strength."""
     n = len(x)
     result = np.zeros(n, dtype=np.float64)
 
@@ -1157,7 +1113,7 @@ def value_cubic_fbm_2d_weighted(
 
         for octave in range(octaves):
             octave_seed = seed + octave * 1337
-            noise = _value_cubic_sample(xi, yi, octave_seed)
+            noise = _value_sample(xi, yi, octave_seed)
             total += noise * amp
             amp *= (1.0 - weighted_strength + weighted_strength * (noise + 1.0) * 0.5) * persistence
             xi *= lacunarity
@@ -1169,7 +1125,7 @@ def value_cubic_fbm_2d_weighted(
 
 
 @njit(parallel=True, fastmath=True, cache=True)
-def value_cubic_ridged_2d(
+def value_ridged_2d(
     x: NDArray[np.float64],
     y: NDArray[np.float64],
     seed: int,
@@ -1179,7 +1135,7 @@ def value_cubic_ridged_2d(
     weighted_strength: float,
     fractal_bounding: float
 ) -> NDArray[np.float64]:
-    """Generate 2D Value Cubic ridged multifractal noise."""
+    """Generate 2D Value ridged multifractal noise."""
     n = len(x)
     result = np.zeros(n, dtype=np.float64)
 
@@ -1191,7 +1147,7 @@ def value_cubic_ridged_2d(
 
         for octave in range(octaves):
             octave_seed = seed + octave * 1337
-            noise_raw = _value_cubic_sample(xi, yi, octave_seed)
+            noise_raw = _value_sample(xi, yi, octave_seed)
 
             # Ridged: absolute value inverted
             noise = 1.0 - abs(noise_raw)
@@ -1211,6 +1167,225 @@ def value_cubic_ridged_2d(
 
 
 @njit(parallel=True, fastmath=True, cache=True)
+def value_pingpong_2d(
+    x: NDArray[np.float64],
+    y: NDArray[np.float64],
+    seed: int,
+    octaves: int,
+    lacunarity: float,
+    persistence: float,
+    weighted_strength: float,
+    ping_pong_strength: float,
+    fractal_bounding: float
+) -> NDArray[np.float64]:
+    """Generate 2D Value ping-pong fractal noise."""
+    n = len(x)
+    result = np.zeros(n, dtype=np.float64)
+
+    for i in prange(n):
+        xi = x[i]
+        yi = y[i]
+        total = 0.0
+        amp = 1.0
+
+        for octave in range(octaves):
+            octave_seed = seed + octave * 1337
+            noise_raw = _value_sample(xi, yi, octave_seed)
+
+            # Ping-pong effect
+            pp_val = (noise_raw + 1.0) * ping_pong_strength
+            pp_val = pp_val - int(pp_val * 0.5) * 2
+            if pp_val >= 1.0:
+                pp_val = 2.0 - pp_val
+            noise = pp_val
+
+            total += (noise - 0.5) * 2.0 * amp
+
+            if weighted_strength > 0:
+                amp *= (1.0 - weighted_strength + weighted_strength * noise) * persistence
+            else:
+                amp *= persistence
+
+            xi *= lacunarity
+            yi *= lacunarity
+
+        result[i] = min(1.0, max(0.0, total * fractal_bounding * 0.5 + 0.5))
+
+    return result
+
+
+# =============================================================================
+# Value Cubic 2D Kernels
+# =============================================================================
+
+@njit(fastmath=True, cache=True)
+def _value_cubic_hash(seed: int, x: int, y: int) -> float:
+    """
+    Hash function that returns a value in range [-1, 1].
+    Uses a simple but effective hash based on bit manipulation.
+    """
+    h = seed
+    h ^= x * 0x27d4eb2d
+    h ^= y * 0x1b873593
+    h ^= h >> 15
+    h *= 0x85ebca6b
+    h ^= h >> 13
+    h *= 0xc2b2ae35
+    h ^= h >> 16
+    return ((h & 0x7fffffff) / 1073741824.0) - 1.0
+
+
+@njit(fastmath=True, cache=True)
+def _cubic_interpolate(a: float, b: float, c: float, d: float, t: float) -> float:
+    """
+    Catmull-Rom cubic interpolation.
+    """
+    p = (d - c) - (a - b)
+    q = (a - b) - p
+    r = c - a
+    s = b
+    return p * t * t * t + q * t * t + r * t + s
+
+
+@njit(fastmath=True, cache=True)
+def _value_cubic_sample(x: float, y: float, seed: int) -> float:
+    """
+    Sample Value Cubic noise at a single point using bicubic interpolation.
+    """
+    x1 = int(np.floor(x))
+    y1 = int(np.floor(y))
+    xs = x - x1
+    ys = y - y1
+
+    # Get values for 4x4 grid
+    v00 = _value_cubic_hash(seed, x1 - 1, y1 - 1)
+    v10 = _value_cubic_hash(seed, x1, y1 - 1)
+    v20 = _value_cubic_hash(seed, x1 + 1, y1 - 1)
+    v30 = _value_cubic_hash(seed, x1 + 2, y1 - 1)
+
+    v01 = _value_cubic_hash(seed, x1 - 1, y1)
+    v11 = _value_cubic_hash(seed, x1, y1)
+    v21 = _value_cubic_hash(seed, x1 + 1, y1)
+    v31 = _value_cubic_hash(seed, x1 + 2, y1)
+
+    v02 = _value_cubic_hash(seed, x1 - 1, y1 + 1)
+    v12 = _value_cubic_hash(seed, x1, y1 + 1)
+    v22 = _value_cubic_hash(seed, x1 + 1, y1 + 1)
+    v32 = _value_cubic_hash(seed, x1 + 2, y1 + 1)
+
+    v03 = _value_cubic_hash(seed, x1 - 1, y1 + 2)
+    v13 = _value_cubic_hash(seed, x1, y1 + 2)
+    v23 = _value_cubic_hash(seed, x1 + 1, y1 + 2)
+    v33 = _value_cubic_hash(seed, x1 + 2, y1 + 2)
+
+    row0 = _cubic_interpolate(v00, v10, v20, v30, xs)
+    row1 = _cubic_interpolate(v01, v11, v21, v31, xs)
+    row2 = _cubic_interpolate(v02, v12, v22, v32, xs)
+    row3 = _cubic_interpolate(v03, v13, v23, v33, xs)
+
+    return _cubic_interpolate(row0, row1, row2, row3, ys)
+
+
+@njit(parallel=True, fastmath=True, cache=True)
+def value_cubic_single_2d(
+    x: NDArray[np.float64],
+    y: NDArray[np.float64],
+    seed: int
+) -> NDArray[np.float64]:
+    """Generate single octave 2D Value Cubic noise (no fractal)."""
+    n = len(x)
+    result = np.zeros(n, dtype=np.float64)
+    for i in prange(n):
+        noise = _value_cubic_sample(x[i], y[i], seed)
+        result[i] = (noise + 1.0) * 0.5
+    return result
+
+
+@njit(parallel=True, fastmath=True, cache=True)
+def value_cubic_fbm_2d(
+    x: NDArray[np.float64],
+    y: NDArray[np.float64],
+    seed: int,
+    octaves: int,
+    lacunarity: float,
+    persistence: float,
+    fractal_bounding: float
+) -> NDArray[np.float64]:
+    """Generate 2D Value Cubic FBM noise."""
+    n = len(x)
+    result = np.zeros(n, dtype=np.float64)
+    for i in prange(n):
+        xi, yi = x[i], y[i]
+        total, amp = 0.0, 1.0
+        for octave in range(octaves):
+            noise = _value_cubic_sample(xi, yi, seed + octave * 1337)
+            total += noise * amp
+            amp *= persistence
+            xi *= lacunarity
+            yi *= lacunarity
+        result[i] = total * fractal_bounding * 0.5 + 0.5
+    return result
+
+
+@njit(parallel=True, fastmath=True, cache=True)
+def value_cubic_fbm_2d_weighted(
+    x: NDArray[np.float64],
+    y: NDArray[np.float64],
+    seed: int,
+    octaves: int,
+    lacunarity: float,
+    persistence: float,
+    weighted_strength: float,
+    fractal_bounding: float
+) -> NDArray[np.float64]:
+    """Generate 2D Value Cubic FBM noise with weighted strength."""
+    n = len(x)
+    result = np.zeros(n, dtype=np.float64)
+    for i in prange(n):
+        xi, yi = x[i], y[i]
+        total, amp = 0.0, 1.0
+        for octave in range(octaves):
+            noise = _value_cubic_sample(xi, yi, seed + octave * 1337)
+            total += noise * amp
+            amp *= (1.0 - weighted_strength + weighted_strength * (noise + 1.0) * 0.5) * persistence
+            xi *= lacunarity
+            yi *= lacunarity
+        result[i] = total * fractal_bounding * 0.5 + 0.5
+    return result
+
+
+@njit(parallel=True, fastmath=True, cache=True)
+def value_cubic_ridged_2d(
+    x: NDArray[np.float64],
+    y: NDArray[np.float64],
+    seed: int,
+    octaves: int,
+    lacunarity: float,
+    persistence: float,
+    weighted_strength: float,
+    fractal_bounding: float
+) -> NDArray[np.float64]:
+    """Generate 2D Value Cubic ridged multifractal noise."""
+    n = len(x)
+    result = np.zeros(n, dtype=np.float64)
+    for i in prange(n):
+        xi, yi = x[i], y[i]
+        total, amp = 0.0, 1.0
+        for octave in range(octaves):
+            noise_raw = _value_cubic_sample(xi, yi, seed + octave * 1337)
+            noise = 1.0 - abs(noise_raw)
+            total += noise * amp
+            if weighted_strength > 0:
+                amp *= (1.0 - weighted_strength + weighted_strength * noise) * persistence
+            else:
+                amp *= persistence
+            xi *= lacunarity
+            yi *= lacunarity
+        result[i] = min(1.0, max(0.0, total * fractal_bounding))
+    return result
+
+
+@njit(parallel=True, fastmath=True, cache=True)
 def value_cubic_pingpong_2d(
     x: NDArray[np.float64],
     y: NDArray[np.float64],
@@ -1225,6 +1400,143 @@ def value_cubic_pingpong_2d(
     """Generate 2D Value Cubic ping-pong fractal noise."""
     n = len(x)
     result = np.zeros(n, dtype=np.float64)
+    for i in prange(n):
+        xi, yi = x[i], y[i]
+        total, amp = 0.0, 1.0
+        for octave in range(octaves):
+            noise_raw = _value_cubic_sample(xi, yi, seed + octave * 1337)
+            pp_val = (noise_raw + 1.0) * ping_pong_strength
+            pp_val = pp_val - int(pp_val * 0.5) * 2
+            if pp_val >= 1.0:
+                pp_val = 2.0 - pp_val
+            noise = pp_val
+            total += (noise - 0.5) * 2.0 * amp
+            if weighted_strength > 0:
+                amp *= (1.0 - weighted_strength + weighted_strength * noise) * persistence
+            else:
+                amp *= persistence
+            xi *= lacunarity
+            yi *= lacunarity
+        result[i] = min(1.0, max(0.0, total * fractal_bounding * 0.5 + 0.5))
+    return result
+
+
+# =============================================================================
+# Simplex Smooth 2D Kernels
+# =============================================================================
+
+# Simplex Smooth constants (smoother falloff than standard OpenSimplex)
+SIMPLEX_SMOOTH_SKEW = 0.366025403784439    # (sqrt(3) - 1) / 2
+SIMPLEX_SMOOTH_UNSKEW = 0.211324865405187  # (3 - sqrt(3)) / 6
+
+# Gradient table for Simplex Smooth (12 directions for better isotropy)
+SIMPLEX_SMOOTH_GRADS = np.array([
+    [1.0, 0.0], [-1.0, 0.0], [0.0, 1.0], [0.0, -1.0],
+    [0.7071067811865476, 0.7071067811865476],
+    [-0.7071067811865476, 0.7071067811865476],
+    [0.7071067811865476, -0.7071067811865476],
+    [-0.7071067811865476, -0.7071067811865476],
+    [0.9238795325112867, 0.3826834323650898],
+    [-0.9238795325112867, 0.3826834323650898],
+    [0.9238795325112867, -0.3826834323650898],
+    [-0.9238795325112867, -0.3826834323650898],
+], dtype=np.float64)
+
+
+@njit(fastmath=True, cache=True)
+def _simplex_smooth_grad(perm: NDArray[np.int16], x: int, y: int, dx: float, dy: float) -> float:
+    """Get gradient contribution with smoother falloff."""
+    idx = perm[(perm[x & 255] + y) & 255] % 12
+    return SIMPLEX_SMOOTH_GRADS[idx, 0] * dx + SIMPLEX_SMOOTH_GRADS[idx, 1] * dy
+
+
+@njit(fastmath=True, cache=True)
+def _simplex_smooth_sample(
+    x: float,
+    y: float,
+    perm: NDArray[np.int16]
+) -> float:
+    """
+    Sample Simplex Smooth noise at a single point.
+    Uses a smoother falloff function for higher quality results.
+    """
+    # Skew input space
+    s = (x + y) * SIMPLEX_SMOOTH_SKEW
+    i = int(np.floor(x + s))
+    j = int(np.floor(y + s))
+
+    # Unskew back
+    t = (i + j) * SIMPLEX_SMOOTH_UNSKEW
+    x0 = x - (i - t)
+    y0 = y - (j - t)
+
+    # Determine which simplex
+    if x0 > y0:
+        i1, j1 = 1, 0
+    else:
+        i1, j1 = 0, 1
+
+    # Offsets for corners
+    x1 = x0 - i1 + SIMPLEX_SMOOTH_UNSKEW
+    y1 = y0 - j1 + SIMPLEX_SMOOTH_UNSKEW
+    x2 = x0 - 1.0 + 2.0 * SIMPLEX_SMOOTH_UNSKEW
+    y2 = y0 - 1.0 + 2.0 * SIMPLEX_SMOOTH_UNSKEW
+
+    # Calculate contributions with smoother falloff (using 0.6 radius instead of 0.5)
+    n = 0.0
+
+    # Corner 0
+    t0 = 0.6 - x0 * x0 - y0 * y0
+    if t0 > 0:
+        t0 *= t0
+        n += t0 * t0 * _simplex_smooth_grad(perm, i, j, x0, y0)
+
+    # Corner 1
+    t1 = 0.6 - x1 * x1 - y1 * y1
+    if t1 > 0:
+        t1 *= t1
+        n += t1 * t1 * _simplex_smooth_grad(perm, i + i1, j + j1, x1, y1)
+
+    # Corner 2
+    t2 = 0.6 - x2 * x2 - y2 * y2
+    if t2 > 0:
+        t2 *= t2
+        n += t2 * t2 * _simplex_smooth_grad(perm, i + 1, j + 1, x2, y2)
+
+    # Scale to [-1, 1]
+    return 45.23065 * n
+
+
+@njit(parallel=True, fastmath=True, cache=True)
+def simplex_smooth_single_2d(
+    x: NDArray[np.float64],
+    y: NDArray[np.float64],
+    perm: NDArray[np.int16]
+) -> NDArray[np.float64]:
+    """Generate single octave 2D Simplex Smooth noise (no fractal)."""
+    n = len(x)
+    result = np.zeros(n, dtype=np.float64)
+
+    for i in prange(n):
+        noise = _simplex_smooth_sample(x[i], y[i], perm)
+        result[i] = (noise + 1.0) * 0.5
+
+    return result
+
+
+@njit(parallel=True, fastmath=True, cache=True)
+def simplex_smooth_fbm_2d(
+    x: NDArray[np.float64],
+    y: NDArray[np.float64],
+    perm: NDArray[np.int16],
+    octaves: int,
+    lacunarity: float,
+    persistence: float,
+    fractal_bounding: float
+) -> NDArray[np.float64]:
+    """Generate 2D Simplex Smooth FBM noise."""
+    n = len(x)
+    result = np.zeros(n, dtype=np.float64)
 
     for i in prange(n):
         xi = x[i]
@@ -1232,9 +1544,114 @@ def value_cubic_pingpong_2d(
         total = 0.0
         amp = 1.0
 
-        for octave in range(octaves):
-            octave_seed = seed + octave * 1337
-            noise_raw = _value_cubic_sample(xi, yi, octave_seed)
+        for _ in range(octaves):
+            noise = _simplex_smooth_sample(xi, yi, perm)
+            total += noise * amp
+            amp *= persistence
+            xi *= lacunarity
+            yi *= lacunarity
+
+        result[i] = total * fractal_bounding * 0.5 + 0.5
+
+    return result
+
+
+@njit(parallel=True, fastmath=True, cache=True)
+def simplex_smooth_fbm_2d_weighted(
+    x: NDArray[np.float64],
+    y: NDArray[np.float64],
+    perm: NDArray[np.int16],
+    octaves: int,
+    lacunarity: float,
+    persistence: float,
+    weighted_strength: float,
+    fractal_bounding: float
+) -> NDArray[np.float64]:
+    """Generate 2D Simplex Smooth FBM noise with weighted strength."""
+    n = len(x)
+    result = np.zeros(n, dtype=np.float64)
+
+    for i in prange(n):
+        xi = x[i]
+        yi = y[i]
+        total = 0.0
+        amp = 1.0
+
+        for _ in range(octaves):
+            noise = _simplex_smooth_sample(xi, yi, perm)
+            total += noise * amp
+            amp *= (1.0 - weighted_strength + weighted_strength * (noise + 1.0) * 0.5) * persistence
+            xi *= lacunarity
+            yi *= lacunarity
+
+        result[i] = total * fractal_bounding * 0.5 + 0.5
+
+    return result
+
+
+@njit(parallel=True, fastmath=True, cache=True)
+def simplex_smooth_ridged_2d(
+    x: NDArray[np.float64],
+    y: NDArray[np.float64],
+    perm: NDArray[np.int16],
+    octaves: int,
+    lacunarity: float,
+    persistence: float,
+    weighted_strength: float,
+    fractal_bounding: float
+) -> NDArray[np.float64]:
+    """Generate 2D Simplex Smooth ridged multifractal noise."""
+    n = len(x)
+    result = np.zeros(n, dtype=np.float64)
+
+    for i in prange(n):
+        xi = x[i]
+        yi = y[i]
+        total = 0.0
+        amp = 1.0
+
+        for _ in range(octaves):
+            noise_raw = _simplex_smooth_sample(xi, yi, perm)
+            noise = 1.0 - abs(noise_raw)
+            total += noise * amp
+
+            if weighted_strength > 0:
+                amp *= (1.0 - weighted_strength + weighted_strength * noise) * persistence
+            else:
+                amp *= persistence
+
+            xi *= lacunarity
+            yi *= lacunarity
+
+        result[i] = min(1.0, max(0.0, total * fractal_bounding))
+
+    return result
+
+
+@njit(parallel=True, fastmath=True, cache=True)
+def simplex_smooth_pingpong_2d(
+    x: NDArray[np.float64],
+    y: NDArray[np.float64],
+    perm: NDArray[np.int16],
+    octaves: int,
+    lacunarity: float,
+    persistence: float,
+    weighted_strength: float,
+    ping_pong_strength: float,
+    fractal_bounding: float
+) -> NDArray[np.float64]:
+    """Generate 2D Simplex Smooth ping-pong fractal noise."""
+    n = len(x)
+    result = np.zeros(n, dtype=np.float64)
+
+    for i in prange(n):
+        xi = x[i]
+        yi = y[i]
+        total = 0.0
+        amp = 1.0
+
+        for _ in range(octaves):
+            noise_raw = _simplex_smooth_sample(xi, yi, perm)
 
             # Ping-pong effect
             pp_val = (noise_raw + 1.0) * ping_pong_strength
