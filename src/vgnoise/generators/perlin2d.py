@@ -1,34 +1,29 @@
 """
-Value Cubic Noise 2D implementation with Numba JIT acceleration.
+Perlin Noise 2D implementation with Numba JIT acceleration.
 
-This module implements the Value Cubic noise algorithm for 2D with Numba JIT
-compilation for maximum performance. Value Cubic uses Catmull-Rom cubic
-interpolation for smoother results than standard Value noise.
-Compatible with Godot's FastNoiseLite.
+This module implements the classic Perlin noise algorithm for 2D with
+Numba JIT compilation for maximum performance. Includes fractal
+noise options compatible with Godot's FastNoiseLite.
 """
 
 from typing import Optional, Tuple, Sequence
 import numpy as np
 from numpy.typing import NDArray
 
-from .base import NoiseGenerator
-from .enums import FractalType
+from ..core.base import NoiseGenerator
+from ..core.enums import FractalType
 from .kernels import (
-    value_cubic_single_2d,
-    value_cubic_fbm_2d,
-    value_cubic_fbm_2d_weighted,
-    value_cubic_ridged_2d,
-    value_cubic_pingpong_2d,
+    perlin_fbm_2d,
+    perlin_fbm_2d_weighted,
+    perlin_ridged_2d,
+    perlin_pingpong_2d,
+    perlin_single_2d,
 )
 
 
-class ValueCubicNoise2D(NoiseGenerator):
+class PerlinNoise2D(NoiseGenerator):
     """
-    2D Value Cubic Noise Generator compatible with Godot FastNoiseLite.
-
-    Value Cubic noise uses cubic (Catmull-Rom) interpolation between
-    random values at lattice points, producing smoother results than
-    standard Value noise while being faster than Perlin noise.
+    2D Perlin Noise Generator compatible with Godot FastNoiseLite.
 
     Uses Numba JIT compilation for high-performance noise generation.
 
@@ -39,11 +34,14 @@ class ValueCubicNoise2D(NoiseGenerator):
         _fractal_type: Type of fractal combination (NONE, FBM, RIDGED, PING_PONG).
         _octaves: Number of noise layers to sample (1-9).
         _lacunarity: Factor by which frequency increases for each successive octave.
-        _persistence: Factor by which amplitude decreases for each successive octave.
+        _persistence: Factor by which amplitude decreases for each successive octave (gain).
         _weighted_strength: Strength of octave weighting based on previous octave's value.
         _ping_pong_strength: Strength of the ping-pong effect.
+        _permutation: Permutation table for hash function.
+        _gradients: Gradient vectors for noise calculation.
     """
 
+    PERM_SIZE = 256
     MAX_OCTAVES = 9
 
     def __init__(
@@ -59,13 +57,13 @@ class ValueCubicNoise2D(NoiseGenerator):
         seed: Optional[int] = None
     ) -> None:
         """
-        Initialize the 2D Value Cubic noise generator with Godot-compatible parameters.
+        Initialize the 2D Perlin noise generator with Godot-compatible parameters.
 
         Args:
-            frequency: Base frequency. Higher values = more detail. Default 0.01.
+            frequency: Base frequency. Higher values = more detail. Default 0.01 (Godot default).
             offset: Domain offset (x, y) applied before noise sampling.
             fractal_type: Type of fractal combination (NONE, FBM, RIDGED, PING_PONG).
-            octaves: Number of noise layers to sample (clamped 1-9). Default 5.
+            octaves: Number of noise layers to sample (clamped 1-9). Default 5 (Godot default).
             lacunarity: Frequency multiplier between octaves. Default 2.0.
             persistence: Amplitude multiplier between octaves (gain). Default 0.5.
             weighted_strength: Octave weighting strength (0.0-1.0). Default 0.0.
@@ -83,6 +81,9 @@ class ValueCubicNoise2D(NoiseGenerator):
         self._weighted_strength = max(0.0, min(weighted_strength, 1.0))
         self._ping_pong_strength = ping_pong_strength
 
+        self._init_permutation_table()
+        self._init_gradients()
+
         # Precompute fractal bounding for normalization
         self._fractal_bounding = self._calculate_fractal_bounding()
 
@@ -98,7 +99,6 @@ class ValueCubicNoise2D(NoiseGenerator):
 
         return 1.0 / amp_fractal
 
-    # Properties
     @property
     def frequency(self) -> float:
         """Get the base frequency of the noise."""
@@ -181,6 +181,21 @@ class ValueCubicNoise2D(NoiseGenerator):
         """Set the ping-pong strength."""
         self._ping_pong_strength = value
 
+    def _init_permutation_table(self) -> None:
+        """Initialize the permutation table for hashing coordinates."""
+        perm = np.arange(self.PERM_SIZE, dtype=np.int32)
+        self._rng.shuffle(perm)
+        self._permutation = np.concatenate([perm, perm]).astype(np.int32)
+
+    def _init_gradients(self) -> None:
+        """Initialize gradient vectors for 2D noise."""
+        self._gradients = np.array([
+            [1, 0], [-1, 0], [0, 1], [0, -1],
+            [1, 1], [-1, 1], [1, -1], [-1, -1]
+        ], dtype=np.float64)
+        # Normalize diagonal gradients
+        self._gradients[4:] /= np.sqrt(2)
+
     @property
     def dimensions(self) -> int:
         """Return the number of dimensions (2 for this generator)."""
@@ -208,6 +223,27 @@ class ValueCubicNoise2D(NoiseGenerator):
         result = self._generate_noise(x, y)
         return np.float64(result[0])
 
+    def get_values_vectorized(
+        self,
+        x: NDArray[np.float64],
+        y: NDArray[np.float64]
+    ) -> NDArray[np.float64]:
+        """
+        Vectorized noise computation for arrays of coordinates.
+
+        Args:
+            x: Array of X coordinates.
+            y: Array of Y coordinates.
+
+        Returns:
+            Array of noise values normalized to [0, 1].
+        """
+        # Apply offset and frequency
+        x = (x + self._offset[0]).astype(np.float64) * self._frequency
+        y = (y + self._offset[1]).astype(np.float64) * self._frequency
+
+        return self._generate_noise(x.ravel(), y.ravel())
+
     def _generate_noise(
         self,
         x: NDArray[np.float64],
@@ -223,15 +259,16 @@ class ValueCubicNoise2D(NoiseGenerator):
         Returns:
             Array of noise values normalized to [0, 1].
         """
-        seed = self.seed if self.seed is not None else 0
+        perm = self._permutation
+        grads = self._gradients
 
         if self._fractal_type == FractalType.NONE:
-            return value_cubic_single_2d(x, y, seed)
+            return perlin_single_2d(x, y, perm, grads)
 
         elif self._fractal_type == FractalType.FBM:
             if self._weighted_strength > 0:
-                return value_cubic_fbm_2d_weighted(
-                    x, y, seed,
+                return perlin_fbm_2d_weighted(
+                    x, y, perm, grads,
                     self._octaves,
                     self._lacunarity,
                     self._persistence,
@@ -239,8 +276,8 @@ class ValueCubicNoise2D(NoiseGenerator):
                     self._fractal_bounding
                 )
             else:
-                return value_cubic_fbm_2d(
-                    x, y, seed,
+                return perlin_fbm_2d(
+                    x, y, perm, grads,
                     self._octaves,
                     self._lacunarity,
                     self._persistence,
@@ -248,8 +285,8 @@ class ValueCubicNoise2D(NoiseGenerator):
                 )
 
         elif self._fractal_type == FractalType.RIDGED:
-            return value_cubic_ridged_2d(
-                x, y, seed,
+            return perlin_ridged_2d(
+                x, y, perm, grads,
                 self._octaves,
                 self._lacunarity,
                 self._persistence,
@@ -258,8 +295,8 @@ class ValueCubicNoise2D(NoiseGenerator):
             )
 
         elif self._fractal_type == FractalType.PING_PONG:
-            return value_cubic_pingpong_2d(
-                x, y, seed,
+            return perlin_pingpong_2d(
+                x, y, perm, grads,
                 self._octaves,
                 self._lacunarity,
                 self._persistence,
@@ -269,8 +306,8 @@ class ValueCubicNoise2D(NoiseGenerator):
             )
 
         # Fallback to FBM
-        return value_cubic_fbm_2d(
-            x, y, seed,
+        return perlin_fbm_2d(
+            x, y, perm, grads,
             self._octaves,
             self._lacunarity,
             self._persistence,

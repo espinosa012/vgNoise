@@ -8,8 +8,8 @@ from typing import Optional, Tuple, Sequence, Dict, Any, Union
 import numpy as np
 from numpy.typing import NDArray
 
-from .base import NoiseGenerator
-from .enums import NoiseType, FractalType, CellularDistanceFunction, CellularReturnType
+from ..core.base import NoiseGenerator
+from ..core.enums import NoiseType, FractalType, CellularDistanceFunction, CellularReturnType
 
 
 # JSON file extension for noise configurations

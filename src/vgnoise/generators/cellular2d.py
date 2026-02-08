@@ -1,34 +1,32 @@
 """
-Simplex Smooth Noise 2D implementation with Numba JIT acceleration.
+Cellular (Worley/Voronoi) Noise 2D implementation with Numba JIT acceleration.
 
-This module implements the Simplex Smooth noise algorithm for 2D with Numba JIT
-compilation. It's a variant of Simplex noise with a smoother falloff function,
-producing higher quality results with fewer artifacts.
-Compatible with Godot's FastNoiseLite.
+This module implements the Cellular noise algorithm for 2D with Numba JIT
+compilation for maximum performance. Includes fractal noise options and
+distance function variations compatible with Godot's FastNoiseLite.
 """
 
 from typing import Optional, Tuple, Sequence
 import numpy as np
 from numpy.typing import NDArray
 
-from .base import NoiseGenerator
-from .enums import FractalType
+from ..core.base import NoiseGenerator
+from ..core.enums import FractalType, CellularDistanceFunction, CellularReturnType
 from .kernels import (
-    simplex_smooth_single_2d,
-    simplex_smooth_fbm_2d,
-    simplex_smooth_fbm_2d_weighted,
-    simplex_smooth_ridged_2d,
-    simplex_smooth_pingpong_2d,
+    cellular_single_2d,
+    cellular_fbm_2d,
+    cellular_fbm_2d_weighted,
+    cellular_ridged_2d,
+    cellular_pingpong_2d,
 )
 
 
-class SimplexSmoothNoise2D(NoiseGenerator):
+class CellularNoise2D(NoiseGenerator):
     """
-    2D Simplex Smooth Noise Generator compatible with Godot FastNoiseLite.
+    2D Cellular (Worley/Voronoi) Noise Generator compatible with Godot FastNoiseLite.
 
-    Simplex Smooth is a variant of Simplex noise that uses a larger falloff
-    radius (0.6 instead of 0.5) and more gradient directions, resulting in
-    smoother, higher quality noise with fewer directional artifacts.
+    Cellular noise creates patterns based on distances to randomly placed
+    feature points, producing effects like cells, cracks, stone textures, etc.
 
     Uses Numba JIT compilation for high-performance noise generation.
 
@@ -42,29 +40,33 @@ class SimplexSmoothNoise2D(NoiseGenerator):
         _persistence: Factor by which amplitude decreases for each successive octave.
         _weighted_strength: Strength of octave weighting based on previous octave's value.
         _ping_pong_strength: Strength of the ping-pong effect.
-        _permutation: Permutation table for hash function.
+        _distance_function: Distance metric used (Euclidean, Manhattan, etc.).
+        _return_type: What value to return (distance, cell value, etc.).
+        _jitter: Amount of randomness in feature point placement (0-1).
     """
 
-    PERM_SIZE = 256
     MAX_OCTAVES = 9
 
     def __init__(
         self,
         frequency: float = 0.01,
         offset: Tuple[float, float] = (0.0, 0.0),
-        fractal_type: FractalType = FractalType.FBM,
+        fractal_type: FractalType = FractalType.NONE,
         octaves: int = 5,
         lacunarity: float = 2.0,
         persistence: float = 0.5,
         weighted_strength: float = 0.0,
         ping_pong_strength: float = 2.0,
+        distance_function: CellularDistanceFunction = CellularDistanceFunction.EUCLIDEAN_SQUARED,
+        return_type: CellularReturnType = CellularReturnType.DISTANCE,
+        jitter: float = 1.0,
         seed: Optional[int] = None
     ) -> None:
         """
-        Initialize the 2D Simplex Smooth noise generator.
+        Initialize the 2D Cellular noise generator with Godot-compatible parameters.
 
         Args:
-            frequency: Base frequency. Higher values = more detail. Default 0.01.
+            frequency: Base frequency. Higher values = more/smaller cells. Default 0.01.
             offset: Domain offset (x, y) applied before noise sampling.
             fractal_type: Type of fractal combination (NONE, FBM, RIDGED, PING_PONG).
             octaves: Number of noise layers to sample (clamped 1-9). Default 5.
@@ -72,6 +74,9 @@ class SimplexSmoothNoise2D(NoiseGenerator):
             persistence: Amplitude multiplier between octaves (gain). Default 0.5.
             weighted_strength: Octave weighting strength (0.0-1.0). Default 0.0.
             ping_pong_strength: Ping-pong effect strength. Default 2.0.
+            distance_function: Distance metric for cell calculations. Default EUCLIDEAN_SQUARED.
+            return_type: What value to return. Default DISTANCE.
+            jitter: Randomness of feature point placement (0-1). Default 1.0.
             seed: Optional random seed for reproducibility.
         """
         super().__init__(seed)
@@ -84,20 +89,12 @@ class SimplexSmoothNoise2D(NoiseGenerator):
         self._persistence = persistence
         self._weighted_strength = max(0.0, min(weighted_strength, 1.0))
         self._ping_pong_strength = ping_pong_strength
-
-        # Initialize permutation table
-        self._init_permutation_table()
+        self._distance_function = distance_function
+        self._return_type = return_type
+        self._jitter = max(0.0, min(jitter, 1.0))
 
         # Precompute fractal bounding for normalization
         self._fractal_bounding = self._calculate_fractal_bounding()
-
-    def _init_permutation_table(self) -> None:
-        """Initialize the permutation table based on seed."""
-        rng = np.random.default_rng(self.seed if self.seed is not None else 0)
-        perm = np.arange(self.PERM_SIZE, dtype=np.int16)
-        rng.shuffle(perm)
-        # Duplicate for wrapping
-        self._permutation = np.concatenate([perm, perm]).astype(np.int16)
 
     def _calculate_fractal_bounding(self) -> float:
         """Calculate the fractal bounding value for normalization."""
@@ -114,75 +111,134 @@ class SimplexSmoothNoise2D(NoiseGenerator):
     # Properties
     @property
     def frequency(self) -> float:
+        """Get the base frequency of the noise."""
         return self._frequency
 
     @frequency.setter
     def frequency(self, value: float) -> None:
+        """Set the base frequency of the noise."""
         self._frequency = value
 
     @property
     def offset(self) -> Tuple[float, float]:
+        """Get the domain offset."""
         return self._offset
 
     @offset.setter
     def offset(self, value: Tuple[float, float]) -> None:
+        """Set the domain offset."""
         self._offset = value
 
     @property
     def fractal_type(self) -> FractalType:
+        """Get the fractal type."""
         return self._fractal_type
 
     @fractal_type.setter
     def fractal_type(self, value: FractalType) -> None:
+        """Set the fractal type."""
         self._fractal_type = value
 
     @property
     def octaves(self) -> int:
+        """Get the number of octaves."""
         return self._octaves
 
     @octaves.setter
     def octaves(self, value: int) -> None:
+        """Set the number of octaves (clamped between 1 and MAX_OCTAVES)."""
         self._octaves = max(1, min(value, self.MAX_OCTAVES))
         self._fractal_bounding = self._calculate_fractal_bounding()
 
     @property
     def lacunarity(self) -> float:
+        """Get the lacunarity (frequency multiplier between octaves)."""
         return self._lacunarity
 
     @lacunarity.setter
     def lacunarity(self, value: float) -> None:
+        """Set the lacunarity."""
         self._lacunarity = value
 
     @property
     def persistence(self) -> float:
+        """Get the persistence (amplitude multiplier between octaves)."""
         return self._persistence
 
     @persistence.setter
     def persistence(self, value: float) -> None:
+        """Set the persistence."""
         self._persistence = value
         self._fractal_bounding = self._calculate_fractal_bounding()
 
     @property
     def weighted_strength(self) -> float:
+        """Get the weighted strength for fractal octaves."""
         return self._weighted_strength
 
     @weighted_strength.setter
     def weighted_strength(self, value: float) -> None:
+        """Set the weighted strength (clamped 0.0-1.0)."""
         self._weighted_strength = max(0.0, min(value, 1.0))
 
     @property
     def ping_pong_strength(self) -> float:
+        """Get the ping-pong strength."""
         return self._ping_pong_strength
 
     @ping_pong_strength.setter
     def ping_pong_strength(self, value: float) -> None:
+        """Set the ping-pong strength."""
         self._ping_pong_strength = value
 
     @property
+    def distance_function(self) -> CellularDistanceFunction:
+        """Get the distance function used for cell calculations."""
+        return self._distance_function
+
+    @distance_function.setter
+    def distance_function(self, value: CellularDistanceFunction) -> None:
+        """Set the distance function."""
+        self._distance_function = value
+
+    @property
+    def return_type(self) -> CellularReturnType:
+        """Get the return type for cellular noise."""
+        return self._return_type
+
+    @return_type.setter
+    def return_type(self, value: CellularReturnType) -> None:
+        """Set the return type."""
+        self._return_type = value
+
+    @property
+    def jitter(self) -> float:
+        """Get the jitter amount for feature point placement."""
+        return self._jitter
+
+    @jitter.setter
+    def jitter(self, value: float) -> None:
+        """Set the jitter amount (clamped 0.0-1.0)."""
+        self._jitter = max(0.0, min(value, 1.0))
+
+    @property
     def dimensions(self) -> int:
+        """Return the number of dimensions (2 for this generator)."""
         return 2
 
     def get_value_at(self, position: Tuple[float, ...]) -> np.float64:
+        """
+        Get the noise value at a specific 2D position.
+
+        Args:
+            position: A tuple (x, y) containing the 2D coordinates.
+
+        Returns:
+            A noise value normalized to the range [0, 1].
+
+        Raises:
+            ValueError: If the position doesn't have exactly 2 elements.
+        """
         if len(position) != 2:
             raise ValueError(f"Position must have 2 elements, got {len(position)}")
 
@@ -197,14 +253,29 @@ class SimplexSmoothNoise2D(NoiseGenerator):
         x: NDArray[np.float64],
         y: NDArray[np.float64]
     ) -> NDArray[np.float64]:
-        """Generate noise using Numba JIT kernels."""
+        """
+        Generate noise using Numba JIT kernels.
+
+        Args:
+            x: Flattened array of X coordinates (with offset and frequency applied).
+            y: Flattened array of Y coordinates (with offset and frequency applied).
+
+        Returns:
+            Array of noise values normalized to [0, 1].
+        """
+        seed = self.seed if self.seed is not None else 0
+        dist_func = self._distance_function.value
+        ret_type = self._return_type.value
+
         if self._fractal_type == FractalType.NONE:
-            return simplex_smooth_single_2d(x, y, self._permutation)
+            return cellular_single_2d(
+                x, y, seed, dist_func, ret_type, self._jitter
+            )
 
         elif self._fractal_type == FractalType.FBM:
             if self._weighted_strength > 0:
-                return simplex_smooth_fbm_2d_weighted(
-                    x, y, self._permutation,
+                return cellular_fbm_2d_weighted(
+                    x, y, seed, dist_func, ret_type, self._jitter,
                     self._octaves,
                     self._lacunarity,
                     self._persistence,
@@ -212,8 +283,8 @@ class SimplexSmoothNoise2D(NoiseGenerator):
                     self._fractal_bounding
                 )
             else:
-                return simplex_smooth_fbm_2d(
-                    x, y, self._permutation,
+                return cellular_fbm_2d(
+                    x, y, seed, dist_func, ret_type, self._jitter,
                     self._octaves,
                     self._lacunarity,
                     self._persistence,
@@ -221,8 +292,8 @@ class SimplexSmoothNoise2D(NoiseGenerator):
                 )
 
         elif self._fractal_type == FractalType.RIDGED:
-            return simplex_smooth_ridged_2d(
-                x, y, self._permutation,
+            return cellular_ridged_2d(
+                x, y, seed, dist_func, ret_type, self._jitter,
                 self._octaves,
                 self._lacunarity,
                 self._persistence,
@@ -231,8 +302,8 @@ class SimplexSmoothNoise2D(NoiseGenerator):
             )
 
         elif self._fractal_type == FractalType.PING_PONG:
-            return simplex_smooth_pingpong_2d(
-                x, y, self._permutation,
+            return cellular_pingpong_2d(
+                x, y, seed, dist_func, ret_type, self._jitter,
                 self._octaves,
                 self._lacunarity,
                 self._persistence,
@@ -241,32 +312,43 @@ class SimplexSmoothNoise2D(NoiseGenerator):
                 self._fractal_bounding
             )
 
-        # Fallback
-        return simplex_smooth_fbm_2d(
-            x, y, self._permutation,
-            self._octaves,
-            self._lacunarity,
-            self._persistence,
-            self._fractal_bounding
+        # Fallback to single
+        return cellular_single_2d(
+            x, y, seed, dist_func, ret_type, self._jitter
         )
 
     def generate_region(
         self,
         region: Sequence[Tuple[float, float, int]]
     ) -> NDArray[np.float64]:
+        """
+        Generate noise values over a defined region (optimized).
+
+        Args:
+            region: A sequence defining the region to generate. Each element is a tuple
+                    of (start, end, num_points) for each dimension.
+
+        Returns:
+            A NumPy array of noise values normalized to the range [0, 1].
+        """
         if len(region) != self.dimensions:
             raise ValueError(
                 f"Region must have {self.dimensions} dimensions, got {len(region)}"
             )
 
+        # Create coordinate arrays
         x_coords = np.linspace(region[0][0], region[0][1], region[0][2], dtype=np.float64)
         y_coords = np.linspace(region[1][0], region[1][1], region[1][2], dtype=np.float64)
 
+        # Create meshgrid and flatten
         xx, yy = np.meshgrid(x_coords, y_coords, indexing='ij')
         shape = xx.shape
 
+        # Apply offset and frequency
         x_flat = (xx.ravel() + self._offset[0]) * self._frequency
         y_flat = (yy.ravel() + self._offset[1]) * self._frequency
 
+        # Generate noise using JIT kernel
         result = self._generate_noise(x_flat, y_flat)
+
         return result.reshape(shape)

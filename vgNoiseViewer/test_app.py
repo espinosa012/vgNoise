@@ -19,8 +19,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 import numpy as np
 from PIL import Image
 
-from vgnoise import PerlinNoise2D
-from vgnoise.enums import NoiseType, FractalType
+from vgnoise import PerlinNoise2D, NoiseType, FractalType
 
 
 class TestNoiseViewerInitialization(unittest.TestCase):

@@ -1,36 +1,34 @@
 """
-OpenSimplex Noise 2D implementation with Numba JIT acceleration.
+Value Cubic Noise 2D implementation with Numba JIT acceleration.
 
-This module implements the OpenSimplex noise algorithm for 2D with
-Numba JIT compilation for maximum performance. Includes fractal
-noise options compatible with Godot's FastNoiseLite.
+This module implements the Value Cubic noise algorithm for 2D with Numba JIT
+compilation for maximum performance. Value Cubic uses Catmull-Rom cubic
+interpolation for smoother results than standard Value noise.
+Compatible with Godot's FastNoiseLite.
 """
 
 from typing import Optional, Tuple, Sequence
 import numpy as np
 from numpy.typing import NDArray
 
-from .base import NoiseGenerator
-from .enums import FractalType
+from ..core.base import NoiseGenerator
+from ..core.enums import FractalType
 from .kernels import (
-    opensimplex_fbm_2d,
-    opensimplex_fbm_2d_weighted,
-    opensimplex_ridged_2d,
-    opensimplex_pingpong_2d,
-    opensimplex_single_2d,
+    value_cubic_single_2d,
+    value_cubic_fbm_2d,
+    value_cubic_fbm_2d_weighted,
+    value_cubic_ridged_2d,
+    value_cubic_pingpong_2d,
 )
 
 
-# Gradient vectors for OpenSimplex 2D
-GRADIENTS_2D = np.array([
-    5, 2, 2, 5, -5, 2, -2, 5,
-    5, -2, 2, -5, -5, -2, -2, -5
-], dtype=np.float64)
-
-
-class OpenSimplexNoise2D(NoiseGenerator):
+class ValueCubicNoise2D(NoiseGenerator):
     """
-    2D OpenSimplex Noise Generator compatible with Godot FastNoiseLite.
+    2D Value Cubic Noise Generator compatible with Godot FastNoiseLite.
+
+    Value Cubic noise uses cubic (Catmull-Rom) interpolation between
+    random values at lattice points, producing smoother results than
+    standard Value noise while being faster than Perlin noise.
 
     Uses Numba JIT compilation for high-performance noise generation.
 
@@ -41,15 +39,12 @@ class OpenSimplexNoise2D(NoiseGenerator):
         _fractal_type: Type of fractal combination (NONE, FBM, RIDGED, PING_PONG).
         _octaves: Number of noise layers to sample (1-9).
         _lacunarity: Factor by which frequency increases for each successive octave.
-        _persistence: Factor by which amplitude decreases for each successive octave (gain).
+        _persistence: Factor by which amplitude decreases for each successive octave.
         _weighted_strength: Strength of octave weighting based on previous octave's value.
         _ping_pong_strength: Strength of the ping-pong effect.
-        _perm: Permutation table for noise generation.
-        _perm_grad_index: Gradient index lookup table.
     """
 
     MAX_OCTAVES = 9
-    PERM_SIZE = 256
 
     def __init__(
         self,
@@ -64,13 +59,13 @@ class OpenSimplexNoise2D(NoiseGenerator):
         seed: Optional[int] = None
     ) -> None:
         """
-        Initialize the OpenSimplex noise generator with Godot-compatible parameters.
+        Initialize the 2D Value Cubic noise generator with Godot-compatible parameters.
 
         Args:
-            frequency: Base frequency. Higher values = more detail. Default 0.01 (Godot default).
+            frequency: Base frequency. Higher values = more detail. Default 0.01.
             offset: Domain offset (x, y) applied before noise sampling.
             fractal_type: Type of fractal combination (NONE, FBM, RIDGED, PING_PONG).
-            octaves: Number of noise layers to sample (clamped 1-9). Default 5 (Godot default).
+            octaves: Number of noise layers to sample (clamped 1-9). Default 5.
             lacunarity: Frequency multiplier between octaves. Default 2.0.
             persistence: Amplitude multiplier between octaves (gain). Default 0.5.
             weighted_strength: Octave weighting strength (0.0-1.0). Default 0.0.
@@ -88,12 +83,6 @@ class OpenSimplexNoise2D(NoiseGenerator):
         self._weighted_strength = max(0.0, min(weighted_strength, 1.0))
         self._ping_pong_strength = ping_pong_strength
 
-        # Initialize permutation tables
-        self._init_permutation_tables()
-
-        # Store gradients reference
-        self._gradients = GRADIENTS_2D
-
         # Precompute fractal bounding for normalization
         self._fractal_bounding = self._calculate_fractal_bounding()
 
@@ -109,6 +98,7 @@ class OpenSimplexNoise2D(NoiseGenerator):
 
         return 1.0 / amp_fractal
 
+    # Properties
     @property
     def frequency(self) -> float:
         """Get the base frequency of the noise."""
@@ -191,19 +181,6 @@ class OpenSimplexNoise2D(NoiseGenerator):
         """Set the ping-pong strength."""
         self._ping_pong_strength = value
 
-    def _init_permutation_tables(self) -> None:
-        """Initialize permutation and gradient index tables."""
-        perm = np.arange(self.PERM_SIZE, dtype=np.int16)
-        self._rng.shuffle(perm)
-
-        # Extend permutation table to avoid index wrapping
-        self._perm = np.zeros(self.PERM_SIZE * 2, dtype=np.int16)
-        self._perm_grad_index = np.zeros(self.PERM_SIZE * 2, dtype=np.int16)
-
-        for i in range(self.PERM_SIZE * 2):
-            self._perm[i] = perm[i & 255]
-            self._perm_grad_index[i] = (self._perm[i] % 8) * 2
-
     @property
     def dimensions(self) -> int:
         """Return the number of dimensions (2 for this generator)."""
@@ -231,27 +208,6 @@ class OpenSimplexNoise2D(NoiseGenerator):
         result = self._generate_noise(x, y)
         return np.float64(result[0])
 
-    def get_values_vectorized(
-        self,
-        x: NDArray[np.float64],
-        y: NDArray[np.float64]
-    ) -> NDArray[np.float64]:
-        """
-        Vectorized noise computation for arrays of coordinates.
-
-        Args:
-            x: Array of X coordinates.
-            y: Array of Y coordinates.
-
-        Returns:
-            Array of noise values normalized to [0, 1].
-        """
-        # Apply offset and frequency
-        x = (x + self._offset[0]).astype(np.float64) * self._frequency
-        y = (y + self._offset[1]).astype(np.float64) * self._frequency
-
-        return self._generate_noise(x.ravel(), y.ravel())
-
     def _generate_noise(
         self,
         x: NDArray[np.float64],
@@ -267,17 +223,15 @@ class OpenSimplexNoise2D(NoiseGenerator):
         Returns:
             Array of noise values normalized to [0, 1].
         """
-        perm = self._perm
-        perm_grad = self._perm_grad_index
-        grads = self._gradients
+        seed = self.seed if self.seed is not None else 0
 
         if self._fractal_type == FractalType.NONE:
-            return opensimplex_single_2d(x, y, perm, perm_grad, grads)
+            return value_cubic_single_2d(x, y, seed)
 
         elif self._fractal_type == FractalType.FBM:
             if self._weighted_strength > 0:
-                return opensimplex_fbm_2d_weighted(
-                    x, y, perm, perm_grad, grads,
+                return value_cubic_fbm_2d_weighted(
+                    x, y, seed,
                     self._octaves,
                     self._lacunarity,
                     self._persistence,
@@ -285,8 +239,8 @@ class OpenSimplexNoise2D(NoiseGenerator):
                     self._fractal_bounding
                 )
             else:
-                return opensimplex_fbm_2d(
-                    x, y, perm, perm_grad, grads,
+                return value_cubic_fbm_2d(
+                    x, y, seed,
                     self._octaves,
                     self._lacunarity,
                     self._persistence,
@@ -294,8 +248,8 @@ class OpenSimplexNoise2D(NoiseGenerator):
                 )
 
         elif self._fractal_type == FractalType.RIDGED:
-            return opensimplex_ridged_2d(
-                x, y, perm, perm_grad, grads,
+            return value_cubic_ridged_2d(
+                x, y, seed,
                 self._octaves,
                 self._lacunarity,
                 self._persistence,
@@ -304,8 +258,8 @@ class OpenSimplexNoise2D(NoiseGenerator):
             )
 
         elif self._fractal_type == FractalType.PING_PONG:
-            return opensimplex_pingpong_2d(
-                x, y, perm, perm_grad, grads,
+            return value_cubic_pingpong_2d(
+                x, y, seed,
                 self._octaves,
                 self._lacunarity,
                 self._persistence,
@@ -315,8 +269,8 @@ class OpenSimplexNoise2D(NoiseGenerator):
             )
 
         # Fallback to FBM
-        return opensimplex_fbm_2d(
-            x, y, perm, perm_grad, grads,
+        return value_cubic_fbm_2d(
+            x, y, seed,
             self._octaves,
             self._lacunarity,
             self._persistence,

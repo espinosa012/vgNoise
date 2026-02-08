@@ -13,8 +13,11 @@ from vgnoise import (
     ValueCubicNoise2D,
     ValueNoise2D,
     SimplexSmoothNoise2D,
+    NoiseType,
+    FractalType,
+    CellularDistanceFunction,
+    CellularReturnType,
 )
-from vgnoise.enums import NoiseType, FractalType, CellularDistanceFunction, CellularReturnType
 
 
 class NoiseGeneratorFactory:

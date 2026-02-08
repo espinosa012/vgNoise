@@ -1,29 +1,34 @@
 """
-Perlin Noise 2D implementation with Numba JIT acceleration.
+Value Noise 2D implementation with Numba JIT acceleration.
 
-This module implements the classic Perlin noise algorithm for 2D with
-Numba JIT compilation for maximum performance. Includes fractal
-noise options compatible with Godot's FastNoiseLite.
+This module implements Value noise algorithm for 2D with Numba JIT compilation.
+Value noise uses random values at lattice points with bilinear interpolation,
+making it simpler and faster than Perlin or Value Cubic noise.
+Compatible with Godot's FastNoiseLite.
 """
 
 from typing import Optional, Tuple, Sequence
 import numpy as np
 from numpy.typing import NDArray
 
-from .base import NoiseGenerator
-from .enums import FractalType
+from ..core.base import NoiseGenerator
+from ..core.enums import FractalType
 from .kernels import (
-    perlin_fbm_2d,
-    perlin_fbm_2d_weighted,
-    perlin_ridged_2d,
-    perlin_pingpong_2d,
-    perlin_single_2d,
+    value_single_2d,
+    value_fbm_2d,
+    value_fbm_2d_weighted,
+    value_ridged_2d,
+    value_pingpong_2d,
 )
 
 
-class PerlinNoise2D(NoiseGenerator):
+class ValueNoise2D(NoiseGenerator):
     """
-    2D Perlin Noise Generator compatible with Godot FastNoiseLite.
+    2D Value Noise Generator compatible with Godot FastNoiseLite.
+
+    Value noise assigns random values to lattice points and interpolates
+    between them using bilinear interpolation with a quintic fade function.
+    This is simpler and faster than gradient-based noise like Perlin.
 
     Uses Numba JIT compilation for high-performance noise generation.
 
@@ -34,14 +39,11 @@ class PerlinNoise2D(NoiseGenerator):
         _fractal_type: Type of fractal combination (NONE, FBM, RIDGED, PING_PONG).
         _octaves: Number of noise layers to sample (1-9).
         _lacunarity: Factor by which frequency increases for each successive octave.
-        _persistence: Factor by which amplitude decreases for each successive octave (gain).
+        _persistence: Factor by which amplitude decreases for each successive octave.
         _weighted_strength: Strength of octave weighting based on previous octave's value.
         _ping_pong_strength: Strength of the ping-pong effect.
-        _permutation: Permutation table for hash function.
-        _gradients: Gradient vectors for noise calculation.
     """
 
-    PERM_SIZE = 256
     MAX_OCTAVES = 9
 
     def __init__(
@@ -57,13 +59,13 @@ class PerlinNoise2D(NoiseGenerator):
         seed: Optional[int] = None
     ) -> None:
         """
-        Initialize the 2D Perlin noise generator with Godot-compatible parameters.
+        Initialize the 2D Value noise generator with Godot-compatible parameters.
 
         Args:
-            frequency: Base frequency. Higher values = more detail. Default 0.01 (Godot default).
+            frequency: Base frequency. Higher values = more detail. Default 0.01.
             offset: Domain offset (x, y) applied before noise sampling.
             fractal_type: Type of fractal combination (NONE, FBM, RIDGED, PING_PONG).
-            octaves: Number of noise layers to sample (clamped 1-9). Default 5 (Godot default).
+            octaves: Number of noise layers to sample (clamped 1-9). Default 5.
             lacunarity: Frequency multiplier between octaves. Default 2.0.
             persistence: Amplitude multiplier between octaves (gain). Default 0.5.
             weighted_strength: Octave weighting strength (0.0-1.0). Default 0.0.
@@ -81,9 +83,6 @@ class PerlinNoise2D(NoiseGenerator):
         self._weighted_strength = max(0.0, min(weighted_strength, 1.0))
         self._ping_pong_strength = ping_pong_strength
 
-        self._init_permutation_table()
-        self._init_gradients()
-
         # Precompute fractal bounding for normalization
         self._fractal_bounding = self._calculate_fractal_bounding()
 
@@ -99,121 +98,78 @@ class PerlinNoise2D(NoiseGenerator):
 
         return 1.0 / amp_fractal
 
+    # Properties
     @property
     def frequency(self) -> float:
-        """Get the base frequency of the noise."""
         return self._frequency
 
     @frequency.setter
     def frequency(self, value: float) -> None:
-        """Set the base frequency of the noise."""
         self._frequency = value
 
     @property
     def offset(self) -> Tuple[float, float]:
-        """Get the domain offset."""
         return self._offset
 
     @offset.setter
     def offset(self, value: Tuple[float, float]) -> None:
-        """Set the domain offset."""
         self._offset = value
 
     @property
     def fractal_type(self) -> FractalType:
-        """Get the fractal type."""
         return self._fractal_type
 
     @fractal_type.setter
     def fractal_type(self, value: FractalType) -> None:
-        """Set the fractal type."""
         self._fractal_type = value
 
     @property
     def octaves(self) -> int:
-        """Get the number of octaves."""
         return self._octaves
 
     @octaves.setter
     def octaves(self, value: int) -> None:
-        """Set the number of octaves (clamped between 1 and MAX_OCTAVES)."""
         self._octaves = max(1, min(value, self.MAX_OCTAVES))
         self._fractal_bounding = self._calculate_fractal_bounding()
 
     @property
     def lacunarity(self) -> float:
-        """Get the lacunarity (frequency multiplier between octaves)."""
         return self._lacunarity
 
     @lacunarity.setter
     def lacunarity(self, value: float) -> None:
-        """Set the lacunarity."""
         self._lacunarity = value
 
     @property
     def persistence(self) -> float:
-        """Get the persistence (amplitude multiplier between octaves)."""
         return self._persistence
 
     @persistence.setter
     def persistence(self, value: float) -> None:
-        """Set the persistence."""
         self._persistence = value
         self._fractal_bounding = self._calculate_fractal_bounding()
 
     @property
     def weighted_strength(self) -> float:
-        """Get the weighted strength for fractal octaves."""
         return self._weighted_strength
 
     @weighted_strength.setter
     def weighted_strength(self, value: float) -> None:
-        """Set the weighted strength (clamped 0.0-1.0)."""
         self._weighted_strength = max(0.0, min(value, 1.0))
 
     @property
     def ping_pong_strength(self) -> float:
-        """Get the ping-pong strength."""
         return self._ping_pong_strength
 
     @ping_pong_strength.setter
     def ping_pong_strength(self, value: float) -> None:
-        """Set the ping-pong strength."""
         self._ping_pong_strength = value
-
-    def _init_permutation_table(self) -> None:
-        """Initialize the permutation table for hashing coordinates."""
-        perm = np.arange(self.PERM_SIZE, dtype=np.int32)
-        self._rng.shuffle(perm)
-        self._permutation = np.concatenate([perm, perm]).astype(np.int32)
-
-    def _init_gradients(self) -> None:
-        """Initialize gradient vectors for 2D noise."""
-        self._gradients = np.array([
-            [1, 0], [-1, 0], [0, 1], [0, -1],
-            [1, 1], [-1, 1], [1, -1], [-1, -1]
-        ], dtype=np.float64)
-        # Normalize diagonal gradients
-        self._gradients[4:] /= np.sqrt(2)
 
     @property
     def dimensions(self) -> int:
-        """Return the number of dimensions (2 for this generator)."""
         return 2
 
     def get_value_at(self, position: Tuple[float, ...]) -> np.float64:
-        """
-        Get the noise value at a specific 2D position.
-
-        Args:
-            position: A tuple (x, y) containing the 2D coordinates.
-
-        Returns:
-            A noise value normalized to the range [0, 1].
-
-        Raises:
-            ValueError: If the position doesn't have exactly 2 elements.
-        """
         if len(position) != 2:
             raise ValueError(f"Position must have 2 elements, got {len(position)}")
 
@@ -223,52 +179,21 @@ class PerlinNoise2D(NoiseGenerator):
         result = self._generate_noise(x, y)
         return np.float64(result[0])
 
-    def get_values_vectorized(
-        self,
-        x: NDArray[np.float64],
-        y: NDArray[np.float64]
-    ) -> NDArray[np.float64]:
-        """
-        Vectorized noise computation for arrays of coordinates.
-
-        Args:
-            x: Array of X coordinates.
-            y: Array of Y coordinates.
-
-        Returns:
-            Array of noise values normalized to [0, 1].
-        """
-        # Apply offset and frequency
-        x = (x + self._offset[0]).astype(np.float64) * self._frequency
-        y = (y + self._offset[1]).astype(np.float64) * self._frequency
-
-        return self._generate_noise(x.ravel(), y.ravel())
-
     def _generate_noise(
         self,
         x: NDArray[np.float64],
         y: NDArray[np.float64]
     ) -> NDArray[np.float64]:
-        """
-        Generate noise using Numba JIT kernels.
-
-        Args:
-            x: Flattened array of X coordinates (with offset and frequency applied).
-            y: Flattened array of Y coordinates (with offset and frequency applied).
-
-        Returns:
-            Array of noise values normalized to [0, 1].
-        """
-        perm = self._permutation
-        grads = self._gradients
+        """Generate noise using Numba JIT kernels."""
+        seed = self.seed if self.seed is not None else 0
 
         if self._fractal_type == FractalType.NONE:
-            return perlin_single_2d(x, y, perm, grads)
+            return value_single_2d(x, y, seed)
 
         elif self._fractal_type == FractalType.FBM:
             if self._weighted_strength > 0:
-                return perlin_fbm_2d_weighted(
-                    x, y, perm, grads,
+                return value_fbm_2d_weighted(
+                    x, y, seed,
                     self._octaves,
                     self._lacunarity,
                     self._persistence,
@@ -276,8 +201,8 @@ class PerlinNoise2D(NoiseGenerator):
                     self._fractal_bounding
                 )
             else:
-                return perlin_fbm_2d(
-                    x, y, perm, grads,
+                return value_fbm_2d(
+                    x, y, seed,
                     self._octaves,
                     self._lacunarity,
                     self._persistence,
@@ -285,8 +210,8 @@ class PerlinNoise2D(NoiseGenerator):
                 )
 
         elif self._fractal_type == FractalType.RIDGED:
-            return perlin_ridged_2d(
-                x, y, perm, grads,
+            return value_ridged_2d(
+                x, y, seed,
                 self._octaves,
                 self._lacunarity,
                 self._persistence,
@@ -295,8 +220,8 @@ class PerlinNoise2D(NoiseGenerator):
             )
 
         elif self._fractal_type == FractalType.PING_PONG:
-            return perlin_pingpong_2d(
-                x, y, perm, grads,
+            return value_pingpong_2d(
+                x, y, seed,
                 self._octaves,
                 self._lacunarity,
                 self._persistence,
@@ -305,9 +230,9 @@ class PerlinNoise2D(NoiseGenerator):
                 self._fractal_bounding
             )
 
-        # Fallback to FBM
-        return perlin_fbm_2d(
-            x, y, perm, grads,
+        # Fallback
+        return value_fbm_2d(
+            x, y, seed,
             self._octaves,
             self._lacunarity,
             self._persistence,
@@ -318,34 +243,19 @@ class PerlinNoise2D(NoiseGenerator):
         self,
         region: Sequence[Tuple[float, float, int]]
     ) -> NDArray[np.float64]:
-        """
-        Generate noise values over a defined region (optimized).
-
-        Args:
-            region: A sequence defining the region to generate. Each element is a tuple
-                    of (start, end, num_points) for each dimension.
-
-        Returns:
-            A NumPy array of noise values normalized to the range [0, 1].
-        """
         if len(region) != self.dimensions:
             raise ValueError(
                 f"Region must have {self.dimensions} dimensions, got {len(region)}"
             )
 
-        # Create coordinate arrays
         x_coords = np.linspace(region[0][0], region[0][1], region[0][2], dtype=np.float64)
         y_coords = np.linspace(region[1][0], region[1][1], region[1][2], dtype=np.float64)
 
-        # Create meshgrid and flatten
         xx, yy = np.meshgrid(x_coords, y_coords, indexing='ij')
         shape = xx.shape
 
-        # Apply offset and frequency
         x_flat = (xx.ravel() + self._offset[0]) * self._frequency
         y_flat = (yy.ravel() + self._offset[1]) * self._frequency
 
-        # Generate noise using JIT kernel
         result = self._generate_noise(x_flat, y_flat)
-
         return result.reshape(shape)
