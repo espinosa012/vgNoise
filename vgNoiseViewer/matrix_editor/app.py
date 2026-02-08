@@ -194,6 +194,7 @@ class MatrixEditor:
         matrix_menu.add_command(label="Normalize (0-1)", command=self._normalize_matrix)
         matrix_menu.add_command(label="Clip Values (0-1)", command=self._clip_matrix)
         matrix_menu.add_command(label="Invert Values", command=self._invert_matrix)
+        matrix_menu.add_command(label="Scale...", command=self._show_scale_dialog)
         matrix_menu.add_separator()
         matrix_menu.add_command(label="Resize...", command=self._show_resize_dialog)
 
@@ -223,24 +224,30 @@ class MatrixEditor:
 
     def _build_main_content(self) -> None:
         """Build the main content area."""
-        main_frame = ttk.Frame(self.root)
-        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
+        # Use PanedWindow for resizable panels
+        self._paned = tk.PanedWindow(
+            self.root,
+            orient=tk.HORIZONTAL,
+            sashwidth=6,
+            sashrelief=tk.RAISED,
+            bg=self.theme_colors.card
+        )
+        self._paned.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
 
         # Left panel - Controls
-        self._build_controls_panel(main_frame)
+        left_frame = ttk.Frame(self._paned)
+        self._build_controls_panel(left_frame)
+        self._paned.add(left_frame, minsize=300, width=420)
 
         # Right panel - Image display
-        self._build_image_panel(main_frame)
+        right_frame = ttk.Frame(self._paned)
+        self._build_image_panel(right_frame)
+        self._paned.add(right_frame, minsize=400)
 
     def _build_controls_panel(self, parent: ttk.Frame) -> None:
         """Build the controls panel."""
-        # Container with fixed width
-        left_frame = ttk.Frame(parent, width=420)
-        left_frame.pack(side=tk.LEFT, fill=tk.Y, padx=(0, 10))
-        left_frame.pack_propagate(False)
-
         # Scrollable frame
-        scroll_frame = ScrollableFrame(left_frame, bg_color=self.theme_colors.background)
+        scroll_frame = ScrollableFrame(parent, bg_color=self.theme_colors.background)
         scroll_frame.pack(fill=tk.BOTH, expand=True)
 
         # Build control sections
@@ -431,11 +438,8 @@ class MatrixEditor:
 
     def _build_image_panel(self, parent: ttk.Frame) -> None:
         """Build the image display panel with zoom support."""
-        right_frame = ttk.Frame(parent)
-        right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
-
-        # Image container with border
-        image_container = ttk.Frame(right_frame, style="Card.TFrame")
+        # Image container with border (parent is now the pane frame)
+        image_container = ttk.Frame(parent, style="Card.TFrame")
         image_container.pack(fill=tk.BOTH, expand=True)
 
         # Info bar
@@ -538,14 +542,48 @@ class MatrixEditor:
             messagebox.showerror("Error", "Invalid matrix dimensions")
 
     def _on_size_change(self, event=None) -> None:
-        """Handle size combobox change - create new matrix with new dimensions."""
+        """Handle size combobox change - resize matrix preserving existing values."""
         if self._initializing:
             return
 
         try:
-            rows = int(self.matrix_rows.get())
-            cols = int(self.matrix_cols.get())
-            self._create_matrix(rows, cols)
+            new_rows = int(self.matrix_rows.get())
+            new_cols = int(self.matrix_cols.get())
+
+            if self._matrix is None:
+                # No matrix yet, create new one
+                self._create_matrix(new_rows, new_cols)
+                return
+
+            old_rows, old_cols = self._matrix.shape
+
+            # If same size, do nothing
+            if new_rows == old_rows and new_cols == old_cols:
+                return
+
+            self._save_undo_state()
+
+            # Create new matrix with default value
+            try:
+                default = float(self.default_value.get())
+            except (ValueError, tk.TclError):
+                default = 0.0
+
+            new_matrix = VGMatrix2D((new_rows, new_cols), default)
+
+            # Copy existing values that fit in the new size
+            copy_rows = min(old_rows, new_rows)
+            copy_cols = min(old_cols, new_cols)
+
+            for r in range(copy_rows):
+                for c in range(copy_cols):
+                    value = self._matrix.get_value_at(r, c)
+                    new_matrix.set_value_at(r, c, value)
+
+            self._matrix = new_matrix
+            self._update_display()
+            self._status_bar.set_message(f"Resized to {new_rows}x{new_cols}")
+
         except ValueError:
             pass  # Ignore invalid values
 
@@ -652,6 +690,48 @@ class MatrixEditor:
         self._matrix = 1.0 - self._matrix
         self._update_display()
         self._status_bar.set_message("Values inverted")
+
+    def _show_scale_dialog(self) -> None:
+        """Show dialog to scale matrix values by a scalar."""
+        if self._matrix is None:
+            return
+
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Scale Matrix")
+        dialog.geometry("300x150")
+        dialog.transient(self.root)
+        dialog.grab_set()
+
+        ttk.Label(
+            dialog,
+            text="Multiply all values by a scalar.\nResult will be clipped to [0, 1]."
+        ).grid(row=0, column=0, columnspan=2, pady=10, padx=10)
+
+        ttk.Label(dialog, text="Scale factor:").grid(row=1, column=0, padx=10, pady=5, sticky="e")
+        scale_var = tk.DoubleVar(value=1.0)
+        scale_entry = ttk.Entry(dialog, textvariable=scale_var, width=10)
+        scale_entry.grid(row=1, column=1, padx=10, pady=5, sticky="w")
+        scale_entry.select_range(0, tk.END)
+        scale_entry.focus()
+
+        def apply_scale():
+            try:
+                factor = scale_var.get()
+                self._save_undo_state()
+                # Scale and clip to [0, 1]
+                self._matrix = (self._matrix * factor).clip(0.0, 1.0)
+                self._update_display()
+                self._status_bar.set_message(f"Scaled by {factor} and clipped to [0, 1]")
+                dialog.destroy()
+            except (ValueError, tk.TclError) as e:
+                messagebox.showerror("Error", f"Invalid scale factor: {e}")
+
+        ttk.Button(dialog, text="Apply", command=apply_scale).grid(
+            row=2, column=0, columnspan=2, pady=15
+        )
+
+        # Allow Enter key to apply
+        dialog.bind("<Return>", lambda e: apply_scale())
 
     def _set_single_value(self) -> None:
         """Set a single value at the specified position."""
