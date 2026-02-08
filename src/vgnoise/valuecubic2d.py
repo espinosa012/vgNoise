@@ -1,9 +1,10 @@
 """
-Cellular (Worley/Voronoi) Noise 2D implementation with Numba JIT acceleration.
+Value Cubic Noise 2D implementation with Numba JIT acceleration.
 
-This module implements the Cellular noise algorithm for 2D with Numba JIT
-compilation for maximum performance. Includes fractal noise options and
-distance function variations compatible with Godot's FastNoiseLite.
+This module implements the Value Cubic noise algorithm for 2D with Numba JIT
+compilation for maximum performance. Value Cubic uses Catmull-Rom cubic
+interpolation for smoother results than standard Value noise.
+Compatible with Godot's FastNoiseLite.
 """
 
 from typing import Optional, Tuple, Sequence
@@ -11,22 +12,23 @@ import numpy as np
 from numpy.typing import NDArray
 
 from .base import NoiseGenerator
-from .enums import FractalType, CellularDistanceFunction, CellularReturnType
+from .enums import FractalType
 from .kernels import (
-    cellular_single_2d,
-    cellular_fbm_2d,
-    cellular_fbm_2d_weighted,
-    cellular_ridged_2d,
-    cellular_pingpong_2d,
+    value_cubic_single_2d,
+    value_cubic_fbm_2d,
+    value_cubic_fbm_2d_weighted,
+    value_cubic_ridged_2d,
+    value_cubic_pingpong_2d,
 )
 
 
-class CellularNoise2D(NoiseGenerator):
+class ValueCubicNoise2D(NoiseGenerator):
     """
-    2D Cellular (Worley/Voronoi) Noise Generator compatible with Godot FastNoiseLite.
+    2D Value Cubic Noise Generator compatible with Godot FastNoiseLite.
 
-    Cellular noise creates patterns based on distances to randomly placed
-    feature points, producing effects like cells, cracks, stone textures, etc.
+    Value Cubic noise uses cubic (Catmull-Rom) interpolation between
+    random values at lattice points, producing smoother results than
+    standard Value noise while being faster than Perlin noise.
 
     Uses Numba JIT compilation for high-performance noise generation.
 
@@ -40,9 +42,6 @@ class CellularNoise2D(NoiseGenerator):
         _persistence: Factor by which amplitude decreases for each successive octave.
         _weighted_strength: Strength of octave weighting based on previous octave's value.
         _ping_pong_strength: Strength of the ping-pong effect.
-        _distance_function: Distance metric used (Euclidean, Manhattan, etc.).
-        _return_type: What value to return (distance, cell value, etc.).
-        _jitter: Amount of randomness in feature point placement (0-1).
     """
 
     MAX_OCTAVES = 9
@@ -51,22 +50,19 @@ class CellularNoise2D(NoiseGenerator):
         self,
         frequency: float = 0.01,
         offset: Tuple[float, float] = (0.0, 0.0),
-        fractal_type: FractalType = FractalType.NONE,
+        fractal_type: FractalType = FractalType.FBM,
         octaves: int = 5,
         lacunarity: float = 2.0,
         persistence: float = 0.5,
         weighted_strength: float = 0.0,
         ping_pong_strength: float = 2.0,
-        distance_function: CellularDistanceFunction = CellularDistanceFunction.EUCLIDEAN_SQUARED,
-        return_type: CellularReturnType = CellularReturnType.DISTANCE,
-        jitter: float = 1.0,
         seed: Optional[int] = None
     ) -> None:
         """
-        Initialize the 2D Cellular noise generator with Godot-compatible parameters.
+        Initialize the 2D Value Cubic noise generator with Godot-compatible parameters.
 
         Args:
-            frequency: Base frequency. Higher values = more/smaller cells. Default 0.01.
+            frequency: Base frequency. Higher values = more detail. Default 0.01.
             offset: Domain offset (x, y) applied before noise sampling.
             fractal_type: Type of fractal combination (NONE, FBM, RIDGED, PING_PONG).
             octaves: Number of noise layers to sample (clamped 1-9). Default 5.
@@ -74,9 +70,6 @@ class CellularNoise2D(NoiseGenerator):
             persistence: Amplitude multiplier between octaves (gain). Default 0.5.
             weighted_strength: Octave weighting strength (0.0-1.0). Default 0.0.
             ping_pong_strength: Ping-pong effect strength. Default 2.0.
-            distance_function: Distance metric for cell calculations. Default EUCLIDEAN_SQUARED.
-            return_type: What value to return. Default DISTANCE.
-            jitter: Randomness of feature point placement (0-1). Default 1.0.
             seed: Optional random seed for reproducibility.
         """
         super().__init__(seed)
@@ -89,9 +82,6 @@ class CellularNoise2D(NoiseGenerator):
         self._persistence = persistence
         self._weighted_strength = max(0.0, min(weighted_strength, 1.0))
         self._ping_pong_strength = ping_pong_strength
-        self._distance_function = distance_function
-        self._return_type = return_type
-        self._jitter = max(0.0, min(jitter, 1.0))
 
         # Precompute fractal bounding for normalization
         self._fractal_bounding = self._calculate_fractal_bounding()
@@ -192,36 +182,6 @@ class CellularNoise2D(NoiseGenerator):
         self._ping_pong_strength = value
 
     @property
-    def distance_function(self) -> CellularDistanceFunction:
-        """Get the distance function used for cell calculations."""
-        return self._distance_function
-
-    @distance_function.setter
-    def distance_function(self, value: CellularDistanceFunction) -> None:
-        """Set the distance function."""
-        self._distance_function = value
-
-    @property
-    def return_type(self) -> CellularReturnType:
-        """Get the return type for cellular noise."""
-        return self._return_type
-
-    @return_type.setter
-    def return_type(self, value: CellularReturnType) -> None:
-        """Set the return type."""
-        self._return_type = value
-
-    @property
-    def jitter(self) -> float:
-        """Get the jitter amount for feature point placement."""
-        return self._jitter
-
-    @jitter.setter
-    def jitter(self, value: float) -> None:
-        """Set the jitter amount (clamped 0.0-1.0)."""
-        self._jitter = max(0.0, min(value, 1.0))
-
-    @property
     def dimensions(self) -> int:
         """Return the number of dimensions (2 for this generator)."""
         return 2
@@ -264,18 +224,14 @@ class CellularNoise2D(NoiseGenerator):
             Array of noise values normalized to [0, 1].
         """
         seed = self.seed if self.seed is not None else 0
-        dist_func = self._distance_function.value
-        ret_type = self._return_type.value
 
         if self._fractal_type == FractalType.NONE:
-            return cellular_single_2d(
-                x, y, seed, dist_func, ret_type, self._jitter
-            )
+            return value_cubic_single_2d(x, y, seed)
 
         elif self._fractal_type == FractalType.FBM:
             if self._weighted_strength > 0:
-                return cellular_fbm_2d_weighted(
-                    x, y, seed, dist_func, ret_type, self._jitter,
+                return value_cubic_fbm_2d_weighted(
+                    x, y, seed,
                     self._octaves,
                     self._lacunarity,
                     self._persistence,
@@ -283,8 +239,8 @@ class CellularNoise2D(NoiseGenerator):
                     self._fractal_bounding
                 )
             else:
-                return cellular_fbm_2d(
-                    x, y, seed, dist_func, ret_type, self._jitter,
+                return value_cubic_fbm_2d(
+                    x, y, seed,
                     self._octaves,
                     self._lacunarity,
                     self._persistence,
@@ -292,8 +248,8 @@ class CellularNoise2D(NoiseGenerator):
                 )
 
         elif self._fractal_type == FractalType.RIDGED:
-            return cellular_ridged_2d(
-                x, y, seed, dist_func, ret_type, self._jitter,
+            return value_cubic_ridged_2d(
+                x, y, seed,
                 self._octaves,
                 self._lacunarity,
                 self._persistence,
@@ -302,8 +258,8 @@ class CellularNoise2D(NoiseGenerator):
             )
 
         elif self._fractal_type == FractalType.PING_PONG:
-            return cellular_pingpong_2d(
-                x, y, seed, dist_func, ret_type, self._jitter,
+            return value_cubic_pingpong_2d(
+                x, y, seed,
                 self._octaves,
                 self._lacunarity,
                 self._persistence,
@@ -312,9 +268,13 @@ class CellularNoise2D(NoiseGenerator):
                 self._fractal_bounding
             )
 
-        # Fallback to single
-        return cellular_single_2d(
-            x, y, seed, dist_func, ret_type, self._jitter
+        # Fallback to FBM
+        return value_cubic_fbm_2d(
+            x, y, seed,
+            self._octaves,
+            self._lacunarity,
+            self._persistence,
+            self._fractal_bounding
         )
 
     def generate_region(

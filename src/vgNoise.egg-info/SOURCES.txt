@@ -7,10 +7,12 @@ src/vgNoise.egg-info/requires.txt
 src/vgNoise.egg-info/top_level.txt
 src/vgnoise/__init__.py
 src/vgnoise/base.py
+src/vgnoise/cellular2d.py
 src/vgnoise/enums.py
 src/vgnoise/kernels.py
 src/vgnoise/noise2d.py
 src/vgnoise/opensimplex2d.py
 src/vgnoise/perlin2d.py
+src/vgnoise/valuecubic2d.py
 src/vgnoise/utils/__init__.py
 src/vgnoise/utils/math_utils.py

@@ -16,7 +16,7 @@ from tkinter import ttk
 from typing import Optional
 import numpy as np
 
-from vgnoise.enums import NoiseType, FractalType
+from vgnoise.enums import NoiseType, FractalType, CellularDistanceFunction, CellularReturnType
 
 # Handle both package and direct execution imports
 try:
@@ -123,6 +123,10 @@ class NoiseViewer:
         self.weighted_strength = tk.DoubleVar(value=0.0)
         self.ping_pong_strength = tk.DoubleVar(value=2.0)
         self.image_size = tk.IntVar(value=512)
+        # Cellular-specific
+        self.cellular_distance_func = tk.StringVar(value=CellularDistanceFunction.EUCLIDEAN_SQUARED.name)
+        self.cellular_return_type = tk.StringVar(value=CellularReturnType.DISTANCE.name)
+        self.cellular_jitter = tk.DoubleVar(value=1.0)
 
     def _configure_window(self) -> None:
         """Configure the main window."""
@@ -178,6 +182,7 @@ class NoiseViewer:
         # Build control sections
         self._build_basic_controls(scroll_frame.scrollable_frame)
         self._build_fractal_controls(scroll_frame.scrollable_frame)
+        self._build_cellular_controls(scroll_frame.scrollable_frame)
         self._build_image_controls(scroll_frame.scrollable_frame)
 
     def _build_image_panel(self, parent: ttk.Frame) -> None:
@@ -361,6 +366,47 @@ class NoiseViewer:
             on_change=self.update_image
         ).pack(fill=tk.X, pady=2)
 
+    def _build_cellular_controls(self, parent: ttk.Frame) -> None:
+        """Build cellular noise specific controls."""
+        self._cellular_card = Card(parent, "Cellular Parameters")
+        self._cellular_card.pack(fill=tk.X, pady=(0, 10))
+
+        content = self._cellular_card.content_frame
+
+        # Distance Function
+        LabeledCombobox(
+            content,
+            label="Distance Function",
+            variable=self.cellular_distance_func,
+            values=[t.name for t in CellularDistanceFunction],
+            on_change=self.update_image
+        ).pack(fill=tk.X, pady=2)
+
+        # Return Type
+        LabeledCombobox(
+            content,
+            label="Return Type",
+            variable=self.cellular_return_type,
+            values=[t.name for t in CellularReturnType],
+            on_change=self.update_image
+        ).pack(fill=tk.X, pady=2)
+
+        # Jitter
+        StepperControl(
+            content,
+            config=ParameterConfig(
+                name="cellular_jitter",
+                label="Jitter",
+                default=1.0,
+                min_value=0.0,
+                max_value=1.0,
+                step=0.05,
+                format_str="{:.2f}"
+            ),
+            variable=self.cellular_jitter,
+            on_change=self.update_image
+        ).pack(fill=tk.X, pady=2)
+
     def _build_image_controls(self, parent: ttk.Frame) -> None:
         """Build image settings controls."""
         card = Card(parent, "Image Settings")
@@ -407,7 +453,11 @@ class NoiseViewer:
             lacunarity=self.lacunarity.get(),
             persistence=self.persistence.get(),
             weighted_strength=self.weighted_strength.get(),
-            ping_pong_strength=self.ping_pong_strength.get()
+            ping_pong_strength=self.ping_pong_strength.get(),
+            # Cellular-specific
+            cellular_distance_function=CellularDistanceFunction[self.cellular_distance_func.get()],
+            cellular_return_type=CellularReturnType[self.cellular_return_type.get()],
+            cellular_jitter=self.cellular_jitter.get()
         )
 
     def _create_generator(self):

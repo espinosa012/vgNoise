@@ -14,6 +14,7 @@ from .noise2d import NoiseGenerator2D
 from .perlin2d import PerlinNoise2D
 from .opensimplex2d import OpenSimplexNoise2D
 from .cellular2d import CellularNoise2D
+from .valuecubic2d import ValueCubicNoise2D
 
 __all__ = [
     # Base
@@ -29,4 +30,5 @@ __all__ = [
     "PerlinNoise2D",
     "OpenSimplexNoise2D",
     "CellularNoise2D",
+    "ValueCubicNoise2D",
 ]
