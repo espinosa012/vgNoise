@@ -91,9 +91,9 @@ class TestNoiseViewerInitialization(unittest.TestCase):
         """Test default image size."""
         self.assertEqual(self.viewer.image_size.get(), 512)
 
-    def test_image_label_created(self):
-        """Test that image label is created."""
-        self.assertIsNotNone(self.viewer.image_label)
+    def test_image_canvas_created(self):
+        """Test that image canvas is created."""
+        self.assertIsNotNone(self.viewer._image_canvas)
 
     def test_photo_image_created(self):
         """Test that photo image is created after initialization."""

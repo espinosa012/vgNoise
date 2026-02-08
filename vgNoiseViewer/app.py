@@ -90,6 +90,11 @@ class NoiseViewer:
         self._initializing = True
         self._photo_image: Optional[tk.PhotoImage] = None
         self._image_label: Optional[ttk.Label] = None
+        self._noise_region: Optional[np.ndarray] = None  # Store original noise data
+        self._zoom_level: float = 1.0  # Current zoom level
+        self._zoom_min: float = 0.25  # Minimum zoom (25%)
+        self._zoom_max: float = 4.0   # Maximum zoom (400%)
+        self._zoom_step: float = 0.1  # Zoom step per scroll
 
         # Initialize UI variables
         self._init_variables()
@@ -193,12 +198,58 @@ class NoiseViewer:
         self._build_image_controls(scroll_frame.scrollable_frame)
 
     def _build_image_panel(self, parent: ttk.Frame) -> None:
-        """Build the image display panel."""
+        """Build the image display panel with zoom support."""
         right_frame = ttk.Frame(parent, style="Card.TFrame")
         right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
-        self._image_label = ttk.Label(right_frame, background=self.theme_colors.card)
-        self._image_label.pack(expand=True)
+        # Create a canvas for the image with scrollbars
+        self._canvas_frame = ttk.Frame(right_frame)
+        self._canvas_frame.pack(fill=tk.BOTH, expand=True)
+
+        # Scrollbars
+        h_scrollbar = ttk.Scrollbar(self._canvas_frame, orient=tk.HORIZONTAL)
+        v_scrollbar = ttk.Scrollbar(self._canvas_frame, orient=tk.VERTICAL)
+
+        # Canvas
+        self._image_canvas = tk.Canvas(
+            self._canvas_frame,
+            bg=self.theme_colors.card,
+            highlightthickness=0,
+            xscrollcommand=h_scrollbar.set,
+            yscrollcommand=v_scrollbar.set
+        )
+
+        # Configure scrollbars
+        h_scrollbar.config(command=self._image_canvas.xview)
+        v_scrollbar.config(command=self._image_canvas.yview)
+
+        # Grid layout for canvas and scrollbars
+        self._image_canvas.grid(row=0, column=0, sticky="nsew")
+        v_scrollbar.grid(row=0, column=1, sticky="ns")
+        h_scrollbar.grid(row=1, column=0, sticky="ew")
+
+        self._canvas_frame.grid_rowconfigure(0, weight=1)
+        self._canvas_frame.grid_columnconfigure(0, weight=1)
+
+        # Bind mouse wheel for zoom
+        self._image_canvas.bind("<MouseWheel>", self._on_mouse_wheel)  # Windows/macOS
+        self._image_canvas.bind("<Button-4>", self._on_mouse_wheel)    # Linux scroll up
+        self._image_canvas.bind("<Button-5>", self._on_mouse_wheel)    # Linux scroll down
+
+        # Bind for panning with middle mouse button
+        self._image_canvas.bind("<ButtonPress-2>", self._on_pan_start)
+        self._image_canvas.bind("<B2-Motion>", self._on_pan_move)
+
+        # Zoom indicator label
+        self._zoom_label = ttk.Label(
+            right_frame,
+            text="Zoom: 100%",
+            style="Small.TLabel"
+        )
+        self._zoom_label.pack(side=tk.BOTTOM, pady=5)
+
+        # For backward compatibility
+        self._image_label = None
 
     def _build_basic_controls(self, parent: ttk.Frame) -> None:
         """Build basic parameter controls."""
@@ -497,21 +548,133 @@ class NoiseViewer:
 
     def update_image(self, *args) -> None:
         """Generate and display the noise image."""
-        if self._image_label is None or self._initializing:
+        if self._initializing:
+            return
+
+        # Check if canvas exists
+        if not hasattr(self, '_image_canvas'):
             return
 
         # Create generator and generate noise
         generator = self._create_generator()
         size = self.image_size.get()
 
-        region = generator.generate_region([
+        self._noise_region = generator.generate_region([
             (0, size, size),
             (0, size, size)
         ])
 
-        # Render to image
-        self._photo_image = self._renderer.render(region)
-        self._image_label.config(image=self._photo_image)
+        # Reset zoom when generating new image
+        self._zoom_level = 1.0
+
+        # Render and display
+        self._render_zoomed_image()
+
+    def _render_zoomed_image(self) -> None:
+        """Render the noise image with current zoom level."""
+        if self._noise_region is None:
+            return
+
+        # Import PIL for resizing
+        from PIL import Image, ImageTk
+
+        # Convert noise to image data
+        image_data = (np.clip(self._noise_region, 0, 1) * 255).astype(np.uint8)
+        pil_image = Image.fromarray(image_data, mode='L')
+
+        # Calculate zoomed size
+        original_size = pil_image.size
+        zoomed_width = int(original_size[0] * self._zoom_level)
+        zoomed_height = int(original_size[1] * self._zoom_level)
+
+        # Resize image
+        if self._zoom_level != 1.0:
+            resample = Image.NEAREST if self._zoom_level > 1.0 else Image.LANCZOS
+            pil_image = pil_image.resize((zoomed_width, zoomed_height), resample)
+
+        # Convert to PhotoImage
+        self._photo_image = ImageTk.PhotoImage(pil_image)
+
+        # Update canvas
+        self._image_canvas.delete("all")
+        self._image_canvas.create_image(0, 0, anchor=tk.NW, image=self._photo_image)
+
+        # Update scroll region
+        self._image_canvas.config(scrollregion=(0, 0, zoomed_width, zoomed_height))
+
+        # Update zoom label
+        zoom_percent = int(self._zoom_level * 100)
+        self._zoom_label.config(text=f"Zoom: {zoom_percent}%")
+
+    def _on_mouse_wheel(self, event) -> None:
+        """Handle mouse wheel for zoom."""
+        # Get scroll direction
+        if event.num == 4 or (hasattr(event, 'delta') and event.delta > 0):
+            # Scroll up - zoom in
+            delta = self._zoom_step
+        elif event.num == 5 or (hasattr(event, 'delta') and event.delta < 0):
+            # Scroll down - zoom out
+            delta = -self._zoom_step
+        else:
+            return
+
+        # Calculate new zoom level
+        new_zoom = self._zoom_level + delta
+        new_zoom = max(self._zoom_min, min(self._zoom_max, new_zoom))
+
+        if new_zoom != self._zoom_level:
+            # Get mouse position on canvas
+            canvas_x = self._image_canvas.canvasx(event.x)
+            canvas_y = self._image_canvas.canvasy(event.y)
+
+            # Calculate relative position (0-1)
+            if self._noise_region is not None:
+                old_width = self._noise_region.shape[0] * self._zoom_level
+                old_height = self._noise_region.shape[1] * self._zoom_level
+
+                rel_x = canvas_x / old_width if old_width > 0 else 0.5
+                rel_y = canvas_y / old_height if old_height > 0 else 0.5
+
+                # Update zoom level
+                self._zoom_level = new_zoom
+
+                # Render with new zoom
+                self._render_zoomed_image()
+
+                # Calculate new scroll position to keep the same point under cursor
+                new_width = self._noise_region.shape[0] * self._zoom_level
+                new_height = self._noise_region.shape[1] * self._zoom_level
+
+                # Scroll to maintain position
+                new_canvas_x = rel_x * new_width - event.x
+                new_canvas_y = rel_y * new_height - event.y
+
+                self._image_canvas.xview_moveto(new_canvas_x / new_width if new_width > 0 else 0)
+                self._image_canvas.yview_moveto(new_canvas_y / new_height if new_height > 0 else 0)
+            else:
+                self._zoom_level = new_zoom
+                self._render_zoomed_image()
+
+    def _on_pan_start(self, event) -> None:
+        """Start panning with middle mouse button."""
+        self._pan_start_x = event.x
+        self._pan_start_y = event.y
+        self._image_canvas.config(cursor="fleur")
+
+    def _on_pan_move(self, event) -> None:
+        """Handle panning motion."""
+        dx = event.x - self._pan_start_x
+        dy = event.y - self._pan_start_y
+
+        self._image_canvas.xview_scroll(-dx, "units")
+        self._image_canvas.yview_scroll(-dy, "units")
+
+        self._pan_start_x = event.x
+        self._pan_start_y = event.y
+
+    def _on_pan_end(self, event) -> None:
+        """End panning."""
+        self._image_canvas.config(cursor="")
 
     def _randomize_seed(self) -> None:
         """Set a random seed and regenerate."""
