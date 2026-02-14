@@ -8,7 +8,7 @@ from PIL import Image, ImageTk, ImageDraw
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "src"))
-from tilemap import VGTileMap, TileSet
+from tilemap import TileMap, TileSet
 class TilemapCanvas(ttk.Frame):
     """Canvas for displaying and editing a tilemap."""
     def __init__(self, parent, **kwargs):
@@ -18,7 +18,7 @@ class TilemapCanvas(ttk.Frame):
             parent: Parent widget.
         """
         super().__init__(parent, **kwargs)
-        self.tilemap: Optional[VGTileMap] = None
+        self.tilemap: Optional[TileMap] = None
         self.tileset_images: Dict[int, Image.Image] = {}  # tileset_id -> Image
         self.tilesets: Dict[int, TileSet] = {}  # tileset_id -> TileSet
         self.current_tile_id: Optional[int] = None
@@ -53,7 +53,7 @@ class TilemapCanvas(ttk.Frame):
         # Bind mouse events
         self.canvas.bind("<Button-1>", self._on_click)
         self.canvas.bind("<B1-Motion>", self._on_drag)
-    def set_tilemap(self, tilemap: VGTileMap):
+    def set_tilemap(self, tilemap: TileMap):
         """Set the tilemap to display."""
         self.tilemap = tilemap
         self.render()

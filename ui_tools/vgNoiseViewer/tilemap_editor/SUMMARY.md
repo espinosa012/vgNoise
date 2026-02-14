@@ -86,10 +86,12 @@ ui_tools/vgNoiseViewer/
 - Estructura de archivos consistente
 ## 📊 Integración con vgMath
 El editor utiliza las clases simplificadas de tilemap:
+
 ```python
-from tilemap import VGTileMap, TileSet, Tile
+from tilemap import TileMap, TileSet, Tile
+
 # VGTileMap: Gestión del mapa de tiles
-tilemap = VGTileMap(width=20, height=15, tile_width=32, tile_height=32)
+tilemap = TileMap(width=20, height=15, tile_width=32, tile_height=32)
 # TileSet: Gestión de la imagen de tileset
 tileset = TileSet(tile_width=32, tile_height=32)
 tileset.load_from_image("my_tileset.png")

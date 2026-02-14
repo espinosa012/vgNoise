@@ -2,8 +2,8 @@
 Tilemap module for vgMath.
 """
 
-from .tilemap import VGTileMap
+from .tilemap import TileMap
 from .tileset import TileSet
 
-__all__ = ["VGTileMap", "TileSet"]
+__all__ = ["TileMap", "TileSet"]
 

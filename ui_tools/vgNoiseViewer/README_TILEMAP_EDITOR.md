@@ -92,13 +92,15 @@ Los tilesets deben ser imágenes donde:
 Ejemplo: Una imagen de 256x128 con tiles de 32x32 = Grid de 8x4 tiles (32 tiles totales)
 ## Ejemplos de Uso
 ### Crear un Mapa Simple
+
 ```python
-from tilemap import VGTileMap, TileSet
+from tilemap import TileMap, TileSet
+
 # Crear tileset
 tileset = TileSet(tile_width=32, tile_height=32)
 tileset.load_from_image("dungeon_tiles.png")
 # Crear mapa
-tilemap = VGTileMap(20, 15, 32, 32)
+tilemap = TileMap(20, 15, 32, 32)
 # Colocar tiles
 tilemap.set_tile(0, 0, 1)  # Pared
 tilemap.set_tile(1, 0, 0)  # Suelo

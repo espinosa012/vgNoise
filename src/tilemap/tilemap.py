@@ -5,7 +5,73 @@ VGTileMap class for managing tilemaps.
 from typing import Tuple, List, Optional
 
 
-class VGTileMap:
+class TileMapLayer:
+    """
+    Represents a single layer in a tilemap.
+
+    Attributes:
+        width: Width of the layer in tiles.
+        height: Height of the layer in tiles.
+        data: 2D list where each cell is (tileset_id, tile_id) or None.
+    """
+
+    def __init__(self, width: int, height: int) -> None:
+        """
+        Initialize a tilemap layer.
+
+        Args:
+            width: Width of the layer in tiles.
+            height: Height of the layer in tiles.
+        """
+        self.width = width
+        self.height = height
+        # Each cell stores (tileset_id, tile_id) or None
+        self.data: List[List[Optional[Tuple[int, int]]]] = [
+            [None for _ in range(width)] for _ in range(height)
+        ]
+
+    def get_tile(self, x: int, y: int) -> Optional[Tuple[int, int]]:
+        """
+        Get the tile at the specified position.
+
+        Args:
+            x: X coordinate in tile units.
+            y: Y coordinate in tile units.
+
+        Returns:
+            Tuple of (tileset_id, tile_id) or None if empty/out of bounds.
+        """
+        if 0 <= x < self.width and 0 <= y < self.height:
+            return self.data[y][x]
+        return None
+
+    def set_tile(self, x: int, y: int, tileset_id: int, tile_id: int) -> None:
+        """
+        Set the tile at the specified position.
+
+        Args:
+            x: X coordinate in tile units.
+            y: Y coordinate in tile units.
+            tileset_id: The tileset ID.
+            tile_id: The tile ID.
+        """
+        if 0 <= x < self.width and 0 <= y < self.height:
+            if tile_id < 0:
+                # Negative tile_id means clear the cell
+                self.data[y][x] = None
+            else:
+                self.data[y][x] = (tileset_id, tile_id)
+
+    def clear(self) -> None:
+        """Clear all tiles in the layer (set to None)."""
+        self.data = [[None for _ in range(self.width)] for _ in range(self.height)]
+
+    def __repr__(self) -> str:
+        """String representation of the layer."""
+        return f"TileMapLayer(width={self.width}, height={self.height})"
+
+
+class TileMap:
     """
     Simple tilemap class for managing tile grids with layer support.
 
@@ -39,22 +105,22 @@ class VGTileMap:
         self.height = height
         self.tile_width = tile_width
         self.tile_height = tile_height
-        # Each cell stores (tileset_id, tile_id) or None
-        self.layers: List[List[List[Tuple[int, int]]]] = []
+        # Each layer is now a TileMapLayer object
+        self.layers: List[TileMapLayer] = []
 
-        # Create initial layers - None means empty cell
+        # Create initial layers
         for _ in range(num_layers):
-            self.layers.append([[None for _ in range(width)] for _ in range(height)])
+            self.layers.append(TileMapLayer(width, height))
 
     @property
-    def data(self) -> List[List[int]]:
+    def data(self) -> List[List[Optional[Tuple[int, int]]]]:
         """
-        Get the first layer (for backward compatibility).
+        Get the first layer data (for backward compatibility).
 
         Returns:
-            2D list of tile IDs from layer 0.
+            2D list of tiles from layer 0.
         """
-        return self.layers[0] if self.layers else []
+        return self.layers[0].data if self.layers else []
 
     @property
     def num_layers(self) -> int:
@@ -73,8 +139,8 @@ class VGTileMap:
         Returns:
             Tuple of (tileset_id, tile_id) or None if empty/out of bounds.
         """
-        if 0 <= layer < len(self.layers) and 0 <= x < self.width and 0 <= y < self.height:
-            return self.layers[layer][y][x]
+        if 0 <= layer < len(self.layers):
+            return self.layers[layer].get_tile(x, y)
         return None
 
     def get_tile_id(self, x: int, y: int, layer: int = 0) -> int:
@@ -105,12 +171,8 @@ class VGTileMap:
             tileset_id: The tileset ID (default: 0).
             layer: Layer index (default: 0).
         """
-        if 0 <= layer < len(self.layers) and 0 <= x < self.width and 0 <= y < self.height:
-            if tile_id < 0:
-                # Negative tile_id means clear the cell
-                self.layers[layer][y][x] = None
-            else:
-                self.layers[layer][y][x] = (tileset_id, tile_id)
+        if 0 <= layer < len(self.layers):
+            self.layers[layer].set_tile(x, y, tileset_id, tile_id)
 
     # layers
     def add_layer(self) -> int:
@@ -120,8 +182,7 @@ class VGTileMap:
         Returns:
             Index of the new layer.
         """
-        new_layer = [[None for _ in range(self.width)] for _ in range(self.height)]
-        self.layers.append(new_layer)
+        self.layers.append(TileMapLayer(self.width, self.height))
         return len(self.layers) - 1
 
     def remove_layer(self, layer: int) -> bool:
@@ -147,20 +208,20 @@ class VGTileMap:
             layer: Layer index to clear (default: 0).
         """
         if 0 <= layer < len(self.layers):
-            self.layers[layer] = [[None for _ in range(self.width)] for _ in range(self.height)]
+            self.layers[layer].clear()
 
-    def get_layer(self, layer: int) -> List[List[int]]:
+    def get_layer(self, layer: int) -> List[List[Optional[Tuple[int, int]]]]:
         """
-        Get a reference to a specific layer.
+        Get a reference to a specific layer data.
 
         Args:
             layer: Layer index.
 
         Returns:
-            2D list of tile IDs for the layer, or empty list if invalid.
+            2D list of tiles (tileset_id, tile_id) or None for the layer, or empty list if invalid.
         """
         if 0 <= layer < len(self.layers):
-            return self.layers[layer]
+            return self.layers[layer].data
         return []
 
     # size

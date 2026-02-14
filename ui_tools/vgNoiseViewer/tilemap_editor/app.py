@@ -7,7 +7,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "src"))
 import tkinter as tk
 from tkinter import ttk, messagebox
 from typing import Optional
-from tilemap import VGTileMap
+from tilemap import TileMap
 try:
     from .config import (
         TilemapThemeColors,
@@ -53,7 +53,7 @@ class TilemapEditor:
         self.config = config or TilemapWindowConfig()
         self.theme = theme or TilemapThemeColors()
         # State
-        self.tilemap: Optional[VGTileMap] = None
+        self.tilemap: Optional[TileMap] = None
         self._setup_window()
         self._setup_ui()
         self._create_default_tilemap()
@@ -164,7 +164,7 @@ class TilemapEditor:
 
     def _create_default_tilemap(self):
         """Create a default empty tilemap."""
-        self.tilemap = VGTileMap(
+        self.tilemap = TileMap(
             DEFAULT_MAP_WIDTH,
             DEFAULT_MAP_HEIGHT,
             DEFAULT_TILE_SIZE,
@@ -178,7 +178,7 @@ class TilemapEditor:
         dialog = NewTilemapDialog(self.root)
         if dialog.result:
             width, height, tile_size = dialog.result
-            self.tilemap = VGTileMap(width, height, tile_size, tile_size)
+            self.tilemap = TileMap(width, height, tile_size, tile_size)
             self.tilemap_canvas.set_tilemap(self.tilemap)
             self._update_map_info()
             self._update_layer_controls()
