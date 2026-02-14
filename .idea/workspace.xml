@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="1b3760f7-cbcd-414c-ae5d-16d36f91ad5c" name="Changes" comment="color class">
+    <list default="true" id="1b3760f7-cbcd-414c-ae5d-16d36f91ad5c" name="Changes" comment="removing tile">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/tilemap/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/tilemap/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/tilemap/tile.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/tilemap/tilemap.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/tilemap/tilemap.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ui_tools/vgNoiseViewer/tilemap_editor/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/ui_tools/vgNoiseViewer/tilemap_editor/app.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ui_tools/vgNoiseViewer/tilemap_editor/tilemap_canvas.py" beforeDir="false" afterPath="$PROJECT_DIR$/ui_tools/vgNoiseViewer/tilemap_editor/tilemap_canvas.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ui_tools/vgNoiseViewer/tilemap_editor/tileset_panel.py" beforeDir="false" afterPath="$PROJECT_DIR$/ui_tools/vgNoiseViewer/tilemap_editor/tileset_panel.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -70,6 +70,7 @@
     "Python.run_tilemap_editor.executor": "Run",
     "Python.run_viewer.executor": "Run",
     "Python.test.executor": "Run",
+    "Python.tilemap_canvas.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.git.unshallow": "true",
@@ -117,7 +118,7 @@
       <workItem from="1770747941420" duration="6000" />
       <workItem from="1771001338805" duration="1962000" />
       <workItem from="1771077297414" duration="12000" />
-      <workItem from="1771079818452" duration="5989000" />
+      <workItem from="1771079818452" duration="9895000" />
     </task>
     <task id="LOCAL-00001" summary="fisrt commit">
       <option name="closed" value="true" />
@@ -207,7 +208,15 @@
       <option name="project" value="LOCAL" />
       <updated>1771084868960</updated>
     </task>
-    <option name="localTasksCounter" value="12" />
+    <task id="LOCAL-00012" summary="removing tile">
+      <option name="closed" value="true" />
+      <created>1771085865980</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1771085865980</updated>
+    </task>
+    <option name="localTasksCounter" value="13" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -221,16 +230,18 @@
     <MESSAGE value="renaming" />
     <MESSAGE value="project refactoring, new tilemap and ui tools" />
     <MESSAGE value="color class" />
-    <option name="LAST_COMMIT_MESSAGE" value="color class" />
+    <MESSAGE value="removing tile" />
+    <option name="LAST_COMMIT_MESSAGE" value="removing tile" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/vgNoise$run_tilemap_editor.coverage" NAME="run_tilemap_editor Coverage Results" MODIFIED="1771084214680" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/ui_tools/vgNoiseViewer" />
+    <SUITE FILE_PATH="coverage/vgNoise$run_tilemap_editor.coverage" NAME="run_tilemap_editor Coverage Results" MODIFIED="1771089720178" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/ui_tools/vgNoiseViewer" />
     <SUITE FILE_PATH="coverage/vgNoise$test.coverage" NAME="test Coverage Results" MODIFIED="1770483482419" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src" />
     <SUITE FILE_PATH="coverage/vgNoise$run_viewer.coverage" NAME="run_viewer Coverage Results" MODIFIED="1770544104725" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/vgNoiseViewer" />
     <SUITE FILE_PATH="coverage/vgNoise$run_noise_viewer.coverage" NAME="run_noise_viewer Coverage Results" MODIFIED="1770578394446" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/vgNoiseViewer" />
     <SUITE FILE_PATH="coverage/vgNoise$noise_dialog.coverage" NAME="noise_dialog Coverage Results" MODIFIED="1770576145786" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/vgNoiseViewer" />
     <SUITE FILE_PATH="coverage/vgNoise$matrix_app.coverage" NAME="matrix_app Coverage Results" MODIFIED="1770576811962" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/vgNoiseViewer" />
     <SUITE FILE_PATH="coverage/vgNoise$run_matrix_editor.coverage" NAME="run_matrix_editor Coverage Results" MODIFIED="1771001514316" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/vgNoiseViewer" />
+    <SUITE FILE_PATH="coverage/vgNoise$tilemap_canvas.coverage" NAME="tilemap_canvas Coverage Results" MODIFIED="1771088348423" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/ui_tools/vgNoiseViewer/tilemap_editor" />
     <SUITE FILE_PATH="coverage/vgNoise$app.coverage" NAME="app Coverage Results" MODIFIED="1771083678360" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/ui_tools/vgNoiseViewer/tilemap_editor" />
   </component>
   <component name="github-copilot-workspace">

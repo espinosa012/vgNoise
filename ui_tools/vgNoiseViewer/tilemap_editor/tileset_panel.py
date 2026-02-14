@@ -43,6 +43,12 @@ class TilesetPanel(ttk.Frame):
         )
         ttk.Button(
             header,
+            text="Remove",
+            command=self._remove_tileset,
+            width=8
+        ).pack(side=tk.RIGHT, padx=2)
+        ttk.Button(
+            header,
             text="Add",
             command=self._add_tileset,
             width=8
@@ -61,6 +67,41 @@ class TilesetPanel(ttk.Frame):
         # Tile size info
         self.info_label = ttk.Label(self, text="No tileset loaded")
         self.info_label.pack(fill=tk.X, padx=5, pady=5)
+
+        # Tile size editor
+        tile_size_frame = ttk.Frame(self)
+        tile_size_frame.pack(fill=tk.X, padx=5, pady=5)
+
+        ttk.Label(tile_size_frame, text="Tile Size:").pack(side=tk.LEFT, padx=(0, 5))
+
+        ttk.Label(tile_size_frame, text="W:").pack(side=tk.LEFT, padx=(0, 2))
+        self.tile_width_var = tk.StringVar(value="16")
+        self.tile_width_entry = ttk.Entry(
+            tile_size_frame,
+            textvariable=self.tile_width_var,
+            width=6
+        )
+        self.tile_width_entry.pack(side=tk.LEFT, padx=2)
+        self.tile_width_entry.bind('<Return>', self._on_tile_size_changed)
+        self.tile_width_entry.bind('<FocusOut>', self._on_tile_size_changed)
+
+        ttk.Label(tile_size_frame, text="H:").pack(side=tk.LEFT, padx=(5, 2))
+        self.tile_height_var = tk.StringVar(value="16")
+        self.tile_height_entry = ttk.Entry(
+            tile_size_frame,
+            textvariable=self.tile_height_var,
+            width=6
+        )
+        self.tile_height_entry.pack(side=tk.LEFT, padx=2)
+        self.tile_height_entry.bind('<Return>', self._on_tile_size_changed)
+        self.tile_height_entry.bind('<FocusOut>', self._on_tile_size_changed)
+
+        ttk.Button(
+            tile_size_frame,
+            text="Apply",
+            command=self._on_tile_size_changed,
+            width=6
+        ).pack(side=tk.LEFT, padx=5)
 
         # Zoom controls
         zoom_frame = ttk.Frame(self)
@@ -129,37 +170,160 @@ class TilesetPanel(ttk.Frame):
                 ("All files", "*.*")
             ]
         )
+
         if not filepath:
             return
-        # Ask for tile size
-        dialog = TileSizeDialog(self, filepath)
-        if not dialog.result:
-            return
-        tile_width, tile_height = dialog.result
+
+        # Use default tile size 16x16
+        tile_width = 16
+        tile_height = 16
+
         try:
-            # Create tileset
-            tileset = TileSet(tile_width=tile_width, tile_height=tile_height)
-            tileset.load_from_image(filepath)
-            # Load image
+            # Load image first to get dimensions
             image = Image.open(filepath)
+
+            # Create tileset with default size
+            tileset = TileSet(tile_width=tile_width, tile_height=tile_height)
+
+            # Try to load, if dimensions don't match, we'll handle it gracefully
+            try:
+                tileset.load_from_image(filepath)
+            except ValueError:
+                # Image dimensions not divisible by tile size
+                # Still add it, user can adjust tile size later
+                messagebox.showwarning(
+                    "Dimension Mismatch",
+                    f"Image dimensions ({image.width}x{image.height}) are not divisible by tile size (16x16).\n"
+                    f"Please adjust the tile size using the controls below."
+                )
+                # Set manual grid size based on image dimensions
+                tileset.columns = image.width // tile_width
+                tileset.rows = image.height // tile_height
+                tileset.image_path = filepath
+
             # Add to list
             self.tilesets.append(tileset)
             self.tileset_images.append(image)
+
             # Update combo
             name = Path(filepath).stem
             self.tileset_combo["values"] = [
                 *self.tileset_combo["values"],
                 f"{name} ({tileset.columns}x{tileset.rows})"
             ]
+
             # Select the new tileset
             self.tileset_combo.current(len(self.tilesets) - 1)
             self._on_tileset_changed()
-            messagebox.showinfo(
-                "Success",
-                f"Tileset loaded: {tileset.columns}x{tileset.rows} tiles"
-            )
+
+            # Update tile size entries
+            self.tile_width_var.set(str(tile_width))
+            self.tile_height_var.set(str(tile_height))
+
         except Exception as e:
             messagebox.showerror("Error", f"Failed to load tileset:\n{str(e)}")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to load tileset:\n{str(e)}")
+
+    def _remove_tileset(self):
+        """Remove the currently selected tileset."""
+        if self.current_tileset_idx is None:
+            messagebox.showwarning("No Tileset", "No tileset selected to remove")
+            return
+
+        if not messagebox.askyesno("Remove Tileset", "Are you sure you want to remove this tileset?"):
+            return
+
+        try:
+            # Remove from lists
+            self.tilesets.pop(self.current_tileset_idx)
+            self.tileset_images.pop(self.current_tileset_idx)
+
+            # Update combo
+            values = list(self.tileset_combo["values"])
+            values.pop(self.current_tileset_idx)
+            self.tileset_combo["values"] = values
+
+            # Clear selection
+            self.current_tileset_idx = None
+            self.selected_tile_id = None
+
+            # Select first tileset if available
+            if len(self.tilesets) > 0:
+                self.tileset_combo.current(0)
+                self._on_tileset_changed()
+            else:
+                self.tileset_combo.set("")
+                self.tile_canvas.delete("all")
+                self.info_label.config(text="No tileset loaded")
+                self.selected_label.config(text="No tile selected")
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to remove tileset:\n{str(e)}")
+
+    def _on_tile_size_changed(self, event=None):
+        """Handle tile size change from entry fields."""
+        if self.current_tileset_idx is None:
+            messagebox.showwarning("No Tileset", "No tileset selected")
+            return
+
+        try:
+            # Get new tile size from entries
+            new_width = int(self.tile_width_var.get())
+            new_height = int(self.tile_height_var.get())
+
+            # Validate
+            if new_width <= 0 or new_height <= 0:
+                messagebox.showerror("Invalid Size", "Tile size must be greater than 0")
+                return
+
+            if new_width > 512 or new_height > 512:
+                messagebox.showerror("Invalid Size", "Tile size must be 512 or less")
+                return
+
+            # Get current tileset and image
+            tileset = self.tilesets[self.current_tileset_idx]
+            image = self.tileset_images[self.current_tileset_idx]
+
+            # Check if dimensions are divisible
+            if image.width % new_width != 0:
+                if not messagebox.askyesno(
+                    "Dimension Warning",
+                    f"Image width ({image.width}) is not divisible by tile width ({new_width}).\n"
+                    f"Some tiles may be cut off. Continue anyway?"
+                ):
+                    return
+
+            if image.height % new_height != 0:
+                if not messagebox.askyesno(
+                    "Dimension Warning",
+                    f"Image height ({image.height}) is not divisible by tile height ({new_height}).\n"
+                    f"Some tiles may be cut off. Continue anyway?"
+                ):
+                    return
+
+            # Update tileset
+            tileset.tile_width = new_width
+            tileset.tile_height = new_height
+            tileset.columns = image.width // new_width
+            tileset.rows = image.height // new_height
+
+            # Update combo text
+            values = list(self.tileset_combo["values"])
+            name = values[self.current_tileset_idx].split(" (")[0]  # Get original name
+            values[self.current_tileset_idx] = f"{name} ({tileset.columns}x{tileset.rows})"
+            self.tileset_combo["values"] = values
+            self.tileset_combo.current(self.current_tileset_idx)
+
+            # Redisplay
+            self._display_tileset()
+
+
+        except ValueError:
+            messagebox.showerror("Invalid Input", "Please enter valid numbers for tile size")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to update tile size:\n{str(e)}")
+
     def _on_tileset_changed(self, event=None):
         """Handle tileset selection change."""
         idx = self.tileset_combo.current()

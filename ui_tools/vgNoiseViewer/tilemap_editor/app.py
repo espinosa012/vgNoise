@@ -123,15 +123,45 @@ class TilemapEditor:
         )
         ttk.Button(
             toolbar,
-            text="New Map",
-            command=self._new_tilemap
-        ).pack(side=tk.LEFT, padx=2)
-        ttk.Button(
-            toolbar,
             text="Clear",
             command=self._clear_tilemap
         ).pack(side=tk.LEFT, padx=2)
+
+        # Layer controls
+        ttk.Separator(toolbar, orient=tk.VERTICAL).pack(
+            side=tk.LEFT, fill=tk.Y, padx=10
+        )
+
+        ttk.Label(toolbar, text="Layer:").pack(side=tk.LEFT, padx=5)
+
+        self.layer_var = tk.IntVar(value=0)
+        self.layer_spinbox = ttk.Spinbox(
+            toolbar,
+            from_=0,
+            to=0,
+            textvariable=self.layer_var,
+            width=5,
+            command=self._on_layer_changed
+        )
+        self.layer_spinbox.pack(side=tk.LEFT, padx=2)
+        self.layer_spinbox.bind('<Return>', lambda e: self._on_layer_changed())
+
+        ttk.Button(
+            toolbar,
+            text="+",
+            command=self._add_layer,
+            width=3
+        ).pack(side=tk.LEFT, padx=2)
+
+        ttk.Button(
+            toolbar,
+            text="-",
+            command=self._remove_layer,
+            width=3
+        ).pack(side=tk.LEFT, padx=2)
+
         return toolbar
+
     def _create_default_tilemap(self):
         """Create a default empty tilemap."""
         self.tilemap = VGTileMap(
@@ -142,6 +172,7 @@ class TilemapEditor:
         )
         self.tilemap_canvas.set_tilemap(self.tilemap)
         self._update_map_info()
+        self._update_layer_controls()
     def _new_tilemap(self):
         """Create a new tilemap with user-specified dimensions."""
         dialog = NewTilemapDialog(self.root)
@@ -150,6 +181,8 @@ class TilemapEditor:
             self.tilemap = VGTileMap(width, height, tile_size, tile_size)
             self.tilemap_canvas.set_tilemap(self.tilemap)
             self._update_map_info()
+            self._update_layer_controls()
+            self.layer_var.set(0)
             self.status_bar.config(text=f"Created new tilemap: {width}x{height}")
     def _clear_tilemap(self):
         """Clear the current tilemap."""
@@ -161,6 +194,53 @@ class TilemapEditor:
                     self.tilemap.set_tile(x, y, 0)
             self.tilemap_canvas.render()
             self.status_bar.config(text="Tilemap cleared")
+
+    def _on_layer_changed(self):
+        """Handle layer selection change."""
+        if not self.tilemap:
+            return
+
+        layer = self.layer_var.get()
+        if 0 <= layer < self.tilemap.num_layers:
+            self.tilemap_canvas.set_current_layer(layer)
+            self.status_bar.config(text=f"Active layer: {layer}")
+
+    def _add_layer(self):
+        """Add a new layer to the tilemap."""
+        if not self.tilemap:
+            return
+
+        new_layer_idx = self.tilemap.add_layer()
+        self._update_layer_controls()
+        self.layer_var.set(new_layer_idx)
+        self._on_layer_changed()
+        self.tilemap_canvas.render()
+        self.status_bar.config(text=f"Added layer {new_layer_idx}")
+
+    def _remove_layer(self):
+        """Remove the current layer."""
+        if not self.tilemap or self.tilemap.num_layers <= 1:
+            messagebox.showwarning("Cannot Remove", "Cannot remove the last layer")
+            return
+
+        current_layer = self.layer_var.get()
+        if messagebox.askyesno("Remove Layer", f"Remove layer {current_layer}?"):
+            if self.tilemap.remove_layer(current_layer):
+                # Adjust current layer if needed
+                if current_layer >= self.tilemap.num_layers:
+                    current_layer = self.tilemap.num_layers - 1
+
+                self._update_layer_controls()
+                self.layer_var.set(current_layer)
+                self._on_layer_changed()
+                self.tilemap_canvas.render()
+                self.status_bar.config(text=f"Removed layer")
+
+    def _update_layer_controls(self):
+        """Update layer controls to reflect current tilemap state."""
+        if self.tilemap:
+            self.layer_spinbox.config(to=self.tilemap.num_layers - 1)
+
     def _on_tile_selected(self, tileset, tile_id):
         """Handle tile selection from tileset panel."""
         # Register tileset if not already registered
@@ -178,7 +258,8 @@ class TilemapEditor:
         if self.tilemap:
             self.map_info_label.config(
                 text=f"{self.tilemap.width}x{self.tilemap.height} "
-                     f"({self.tilemap.tile_width}x{self.tilemap.tile_height} tiles)"
+                     f"({self.tilemap.tile_width}x{self.tilemap.tile_height} tiles) "
+                     f"[{self.tilemap.num_layers} layers]"
             )
     def _show_about(self):
         """Show about dialog."""

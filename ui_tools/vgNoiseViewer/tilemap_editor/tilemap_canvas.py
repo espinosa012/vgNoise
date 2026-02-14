@@ -23,15 +23,20 @@ class TilemapCanvas(ttk.Frame):
         self.tilesets: Dict[int, TileSet] = {}  # tileset_id -> TileSet
         self.current_tile_id: Optional[int] = None
         self.current_tileset_id: Optional[int] = None
+        self.current_layer: int = 0  # Current active layer for painting
         self.rendered_image: Optional[Image.Image] = None
+
         self._setup_ui()
+
     def _setup_ui(self):
         """Setup the UI components."""
         # Add scrollbars
         v_scroll = ttk.Scrollbar(self, orient=tk.VERTICAL)
         v_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+
         h_scroll = ttk.Scrollbar(self, orient=tk.HORIZONTAL)
         h_scroll.pack(side=tk.BOTTOM, fill=tk.X)
+
         # Create canvas
         self.canvas = tk.Canvas(
             self,
@@ -41,8 +46,10 @@ class TilemapCanvas(ttk.Frame):
             highlightthickness=0
         )
         self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
         v_scroll.config(command=self.canvas.yview)
         h_scroll.config(command=self.canvas.xview)
+
         # Bind mouse events
         self.canvas.bind("<Button-1>", self._on_click)
         self.canvas.bind("<B1-Motion>", self._on_drag)
@@ -58,20 +65,30 @@ class TilemapCanvas(ttk.Frame):
         """Set the current tile for painting."""
         self.current_tileset_id = tileset_id
         self.current_tile_id = tile_id
+
+    def set_current_layer(self, layer: int):
+        """Set the current active layer for painting."""
+        if self.tilemap and 0 <= layer < self.tilemap.num_layers:
+            self.current_layer = layer
     def render(self):
         """Render the tilemap to the canvas."""
         if not self.tilemap:
             return
-        # Create image
+        # Create image with RGBA mode to support transparency
         width = self.tilemap.width * self.tilemap.tile_width
         height = self.tilemap.height * self.tilemap.tile_height
-        self.rendered_image = Image.new('RGB', (width, height), color=(45, 45, 45))
-        # Render each tile
-        for y in range(self.tilemap.height):
-            for x in range(self.tilemap.width):
-                tile_id = self.tilemap.get_tile_id(x, y)
-                if tile_id >= 0:
-                    self._draw_tile(x, y, tile_id)
+        # Start with transparent background
+        self.rendered_image = Image.new('RGBA', (width, height), color=(45, 45, 45, 255))
+
+        # Render each layer in order (layer 0 first, then layer 1, etc.)
+        for layer_idx in range(self.tilemap.num_layers):
+            for y in range(self.tilemap.height):
+                for x in range(self.tilemap.width):
+                    tile = self.tilemap.get_tile(x, y, layer=layer_idx)
+                    if tile is not None:  # tile is (tileset_id, tile_id) or None
+                        tileset_id, tile_id = tile
+                        self._draw_tile(x, y, tileset_id, tile_id)
+
         # Draw grid
         self._draw_grid()
         # Update canvas
@@ -79,34 +96,52 @@ class TilemapCanvas(ttk.Frame):
         self.canvas.delete("all")
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.photo)
         self.canvas.config(scrollregion=(0, 0, width, height))
-    def _draw_tile(self, map_x: int, map_y: int, tile_id: int):
+    def _draw_tile(self, map_x: int, map_y: int, tileset_id: int, tile_id: int):
         """Draw a single tile on the rendered image."""
         if not self.rendered_image:
             return
-        # Find tileset that contains this tile_id
-        # For now, use the first tileset (simplified)
-        if not self.tileset_images:
+
+        # Get the specified tileset
+        if tileset_id not in self.tilesets or tileset_id not in self.tileset_images:
             return
-        tileset_id = list(self.tilesets.keys())[0]
+
         tileset = self.tilesets[tileset_id]
         tileset_image = self.tileset_images[tileset_id]
+
         # Get tile rect from tileset
         rect = tileset.get_tile_rect(tile_id)
         if not rect:
             return
+
         src_x, src_y, src_w, src_h = rect
+
         # Extract tile from tileset
         tile_img = tileset_image.crop((src_x, src_y, src_x + src_w, src_y + src_h))
+
+        # Convert to RGBA to preserve transparency
+        if tile_img.mode != 'RGBA':
+            tile_img = tile_img.convert('RGBA')
+
         # Resize if needed
         if (src_w != self.tilemap.tile_width or src_h != self.tilemap.tile_height):
             tile_img = tile_img.resize(
                 (self.tilemap.tile_width, self.tilemap.tile_height),
                 Image.Resampling.NEAREST
             )
-        # Paste on rendered image
+
+        # Paste on rendered image with alpha channel as mask
         dst_x = map_x * self.tilemap.tile_width
         dst_y = map_y * self.tilemap.tile_height
-        self.rendered_image.paste(tile_img, (dst_x, dst_y))
+
+        # Use alpha_composite for proper transparency blending
+        if tile_img.mode == 'RGBA':
+            # Create a temporary image with the tile positioned correctly
+            temp = Image.new('RGBA', self.rendered_image.size, (0, 0, 0, 0))
+            temp.paste(tile_img, (dst_x, dst_y))
+            # Alpha composite the temp image over the rendered image
+            self.rendered_image = Image.alpha_composite(self.rendered_image, temp)
+        else:
+            self.rendered_image.paste(tile_img, (dst_x, dst_y))
     def _draw_grid(self):
         """Draw grid lines on the rendered image."""
         if not self.rendered_image:
@@ -138,12 +173,15 @@ class TilemapCanvas(ttk.Frame):
         # Convert to tile coordinates
         tile_x = int(x // self.tilemap.tile_width)
         tile_y = int(y // self.tilemap.tile_height)
-        # Paint tile
+        # Paint tile on current layer
         if 0 <= tile_x < self.tilemap.width and 0 <= tile_y < self.tilemap.height:
-            self.tilemap.set_tile(tile_x, tile_y, self.current_tile_id)
-            # Re-render just this tile
-            self._draw_tile(tile_x, tile_y, self.current_tile_id)
-            # Update display
-            self.photo = ImageTk.PhotoImage(self.rendered_image)
-            self.canvas.delete("all")
-            self.canvas.create_image(0, 0, anchor=tk.NW, image=self.photo)
+            if self.current_tile_id is not None and self.current_tileset_id is not None:
+                self.tilemap.set_tile(
+                    tile_x, tile_y,
+                    self.current_tile_id,
+                    tileset_id=self.current_tileset_id,
+                    layer=self.current_layer
+                )
+
+                # Re-render (need to render all layers to show correct composition)
+                self.render()
