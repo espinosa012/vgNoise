@@ -134,7 +134,6 @@ class BaseGameApp:
         if not self.tilemap or not self.tileset:
             return
 
-        # Usar el método optimizado de la cámara para obtener tiles visibles
         start_tile_x, start_tile_y, end_tile_x, end_tile_y = self.camera.get_visible_tiles(
             self.tilemap.tile_width,
             self.tilemap.tile_height,
