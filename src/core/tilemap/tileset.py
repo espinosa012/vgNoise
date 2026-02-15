@@ -212,7 +212,7 @@ class TileSet:
             y = row * tile_height
 
             # Create a rect with the flat color
-            rgba = color.as_rgba_tuple()
+            rgba = color.to_rgba()
             pygame.draw.rect(surface, rgba, (x, y, tile_width, tile_height))
 
         # Save image

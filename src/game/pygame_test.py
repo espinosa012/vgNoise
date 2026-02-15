@@ -18,6 +18,7 @@ import pygame
 from core.color.color import Color
 from core.tilemap.tilemap import TileMap
 from core.tilemap.tileset import TileSet
+from core.camera.camera import Camera
 
 
 # Constantes
@@ -62,11 +63,29 @@ class BaseGameApp:
         self.square_y = 100
         self.square_speed = 5
 
+        # Crear cámara
+        self.camera = Camera(
+            x=0, y=0,
+            width=WINDOW_WIDTH,
+            height=WINDOW_HEIGHT,
+            zoom=1.0
+        )
+        self.camera_speed = 10  # Aumentar velocidad para que sea más visible
+
         # Crear tilemap de prueba con tileset grayscale
         self.setup_tilemap()
 
+        # Configurar límites de cámara basados en el tilemap
+        self.camera.set_bounds_from_tilemap(
+            self.tilemap.width,
+            self.tilemap.height,
+            self.tilemap.tile_width,
+            self.tilemap.tile_height
+        )
+
         print("✓ Pygame inicializado correctamente")
         print(f"✓ Ventana creada: {WINDOW_WIDTH}x{WINDOW_HEIGHT}")
+        print(f"✓ Cámara: {self.camera}")
 
     def setup_tilemap(self):
         """Configura el tilemap de prueba con tileset grayscale."""
@@ -81,17 +100,17 @@ class BaseGameApp:
         )
         print(f"✓ Tileset generado: {self.tileset}")
 
-        # Crear tilemap de 20x15 tiles
+        # Crear tilemap de 50x40 tiles (más grande que la ventana para permitir movimiento)
         self.tilemap = TileMap(
-            width=20,
-            height=15,
+            width=50,
+            height=40,
             tile_width=32,
             tile_height=32,
             num_layers=1
         )
 
         # Registrar tileset en el tilemap
-        self.tilemap.register_tileset(0, self.tileset)
+        self.tilemap.add_tileset(0, self.tileset)
 
         # Llenar el tilemap con un patrón de prueba
         for y in range(self.tilemap.height):
@@ -103,35 +122,29 @@ class BaseGameApp:
                 else:
                     tile_id = (31 - ((x + y) % 32))
 
-                self.tilemap.set_tile(x, y, 0, tile_id, layer=0)
+                # Correcto: set_tile(x, y, tile_id, tileset_id, layer)
+                self.tilemap.set_tile(x, y, tile_id, tileset_id=0, layer=0)
 
         print(f"✓ Tilemap creado: {self.tilemap.width}x{self.tilemap.height} tiles")
 
-    def render_tilemap(self, camera_x: int = 0, camera_y: int = 0):
+    def render_tilemap(self):
         """
-        Renderiza el tilemap en la pantalla usando sistema de chunks.
-
-        Args:
-            camera_x: Offset X de la cámara en píxeles.
-            camera_y: Offset Y de la cámara en píxeles.
+        Renderiza el tilemap en la pantalla usando la cámara.
         """
         if not self.tilemap or not self.tileset:
             return
 
-        # Calcular qué tiles son visibles
-        start_tile_x = max(0, camera_x // self.tilemap.tile_width)
-        start_tile_y = max(0, camera_y // self.tilemap.tile_height)
-        end_tile_x = min(self.tilemap.width, (camera_x + WINDOW_WIDTH) // self.tilemap.tile_width + 1)
-        end_tile_y = min(self.tilemap.height, (camera_y + WINDOW_HEIGHT) // self.tilemap.tile_height + 1)
+        # Usar el método optimizado de la cámara para obtener tiles visibles
+        start_tile_x, start_tile_y, end_tile_x, end_tile_y = self.camera.get_visible_tiles(
+            self.tilemap.tile_width,
+            self.tilemap.tile_height,
+            self.tilemap.width,
+            self.tilemap.height
+        )
 
         # Renderizar cada capa
         for layer_idx in range(self.tilemap.num_layers):
             layer = self.tilemap.layers[layer_idx]
-
-            # Obtener chunks en el área visible (optimización)
-            chunks_in_view = self.tilemap.get_chunks_in_area(
-                start_tile_x, start_tile_y, end_tile_x, end_tile_y, layer_idx
-            )
 
             # Renderizar solo los tiles visibles
             for tile_y in range(start_tile_y, end_tile_y):
@@ -147,12 +160,25 @@ class BaseGameApp:
                             # Obtener surface del tile
                             tile_surface = tileset.get_tile_surface(tile_id)
                             if tile_surface:
-                                # Calcular posición en pantalla
-                                screen_x = tile_x * self.tilemap.tile_width - camera_x
-                                screen_y = tile_y * self.tilemap.tile_height - camera_y
+                                # Calcular posición en mundo
+                                world_x = tile_x * self.tilemap.tile_width
+                                world_y = tile_y * self.tilemap.tile_height
 
-                                # Dibujar tile
-                                self.screen.blit(tile_surface, (screen_x, screen_y))
+                                # Convertir a coordenadas de pantalla usando la cámara
+                                screen_x, screen_y = self.camera.world_to_screen(world_x, world_y)
+
+                                # Aplicar zoom al tile si es necesario
+                                if self.camera.zoom != 1.0:
+                                    # Escalar el tile según el zoom
+                                    scaled_width = int(self.tilemap.tile_width * self.camera.zoom)
+                                    scaled_height = int(self.tilemap.tile_height * self.camera.zoom)
+                                    scaled_tile = pygame.transform.scale(
+                                        tile_surface,
+                                        (scaled_width, scaled_height)
+                                    )
+                                    self.screen.blit(scaled_tile, (int(screen_x), int(screen_y)))
+                                else:
+                                    self.screen.blit(tile_surface, (int(screen_x), int(screen_y)))
 
     def handle_events(self):
         """Maneja eventos de teclado y ratón."""
@@ -166,56 +192,85 @@ class BaseGameApp:
                     self.running = False
                     print("✓ ESC presionado - cerrando")
                 elif event.key == pygame.K_SPACE:
-                    print("✓ SPACE presionado")
+                    print(f"✓ Cámara: {self.camera}")
+                elif event.key == pygame.K_r:
+                    # Reset camera
+                    self.camera.set_position(0, 0)
+                    self.camera.zoom = 1.0
+                    print("✓ Cámara reseteada")
 
-        # Movimiento continuo con teclas
+            elif event.type == pygame.MOUSEWHEEL:
+                # Zoom con rueda del ratón
+                mouse_x, mouse_y = pygame.mouse.get_pos()
+                if event.y > 0:  # Scroll up = zoom in
+                    self.camera.zoom_at_point(mouse_x, mouse_y, 1.1)
+                elif event.y < 0:  # Scroll down = zoom out
+                    self.camera.zoom_at_point(mouse_x, mouse_y, 0.9)
+
+        # Movimiento continuo con teclas (cámara)
         keys = pygame.key.get_pressed()
-        if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-            self.square_x -= self.square_speed
-        if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-            self.square_x += self.square_speed
-        if keys[pygame.K_UP] or keys[pygame.K_w]:
-            self.square_y -= self.square_speed
-        if keys[pygame.K_DOWN] or keys[pygame.K_s]:
-            self.square_y += self.square_speed
 
-        # Mantener dentro de la pantalla
-        self.square_x = max(0, min(self.square_x, WINDOW_WIDTH - 50))
-        self.square_y = max(0, min(self.square_y, WINDOW_HEIGHT - 50))
+        # Movimiento de cámara con flechas o WASD
+        if keys[pygame.K_LEFT] or keys[pygame.K_a]:
+            self.camera.move(-self.camera_speed, 0)
+        if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
+            self.camera.move(self.camera_speed, 0)
+        if keys[pygame.K_UP] or keys[pygame.K_w]:
+            self.camera.move(0, -self.camera_speed)
+        if keys[pygame.K_DOWN] or keys[pygame.K_s]:
+            self.camera.move(0, self.camera_speed)
+
+        # Zoom con + y -
+        if keys[pygame.K_PLUS] or keys[pygame.K_EQUALS]:
+            self.camera.zoom_in(1.02)
+        if keys[pygame.K_MINUS]:
+            self.camera.zoom_out(1.02)
 
     def update(self):
         """Actualiza la lógica del juego."""
         self.frame_count += 1
+
+        # Actualizar cámara (para smooth movement)
+        self.camera.update()
 
     def draw(self):
         """Dibuja toda la info en la pantalla."""
         # Limpiar pantalla con color negro
         self.screen.fill(BLACK.to_rgb())
 
-        # Renderizar tilemap
-        self.render_tilemap(camera_x=0, camera_y=0)
+        # Renderizar tilemap con cámara
+        self.render_tilemap()
 
         # Dibujar título
         font_large = pygame.font.Font(None, 48)
-        title = font_large.render("TileMap Test", True, WHITE.to_rgb())
+        title = font_large.render("TileMap + Camera Test", True, WHITE.to_rgb())
         self.screen.blit(title, (WINDOW_WIDTH // 2 - title.get_width() // 2, 10))
 
         # Dibujar info
-        font_small = pygame.font.Font(None, 20)
+        font_small = pygame.font.Font(None, 18)
         active_chunks = len(self.tilemap.get_active_chunks(layer=0))
         info_texts = [
             f"TileMap: {self.tilemap.width}x{self.tilemap.height} tiles",
             f"TileSet: {self.tileset.columns}x{self.tileset.rows} (32 colors)",
             f"Chunk size: {self.tilemap.chunk_size}x{self.tilemap.chunk_size}",
             f"Active chunks: {active_chunks}",
+            f"Camera: ({self.camera.x:.0f}, {self.camera.y:.0f})",
+            f"Zoom: {self.camera.zoom:.2f}x",
             f"FPS: {int(self.clock.get_fps())}",
+            "",
+            "Controls:",
+            "WASD/Arrows: Move camera",
+            "Mouse wheel: Zoom",
+            "+/- : Zoom in/out",
+            "R: Reset camera",
+            "ESC: Exit",
         ]
 
-        y_offset = WINDOW_HEIGHT - 115
+        y_offset = WINDOW_HEIGHT - 270
         for text in info_texts:
             surface = font_small.render(text, True, CYAN.to_rgb())
             self.screen.blit(surface, (10, y_offset))
-            y_offset += 22
+            y_offset += 20
 
         # Actualizar pantalla
         pygame.display.flip()
@@ -223,9 +278,14 @@ class BaseGameApp:
     def run(self):
         """Loop principal del juego."""
         print("\n" + "=" * 60)
-        print("TILEMAP RENDER TEST - LOOP INICIADO")
+        print("TILEMAP + CAMERA TEST - LOOP INICIADO")
         print("=" * 60)
         print("Controles:")
+        print("  - WASD o Flechas: Mover cámara")
+        print("  - Rueda del ratón: Zoom (centrado en cursor)")
+        print("  - +/- : Zoom in/out")
+        print("  - R: Reset cámara")
+        print("  - SPACE: Info de cámara en consola")
         print("  - ESC o X: Cerrar ventana")
         print("=" * 60 + "\n")
 
