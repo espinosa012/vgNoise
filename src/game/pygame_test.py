@@ -12,13 +12,19 @@ Este script demuestra las funcionalidades básicas de pygame:
 """
 
 import sys
+from pathlib import Path
+
+# Agregar el directorio src al path para imports
+src_dir = Path(__file__).parent.parent
+if str(src_dir) not in sys.path:
+    sys.path.insert(0, str(src_dir))
+
 import pygame
 
+from core.camera import Camera
 # Importar nuestras clases
 from core.color.color import Color
-from core.tilemap.tilemap import TileMap
-from core.tilemap.tileset import TileSet
-from core.camera.camera import Camera
+from core.tilemap import TileMap, TileSet
 
 
 # Constantes
@@ -26,15 +32,10 @@ WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 600
 FPS = 60
 
-# Colores usando nuestra clase Color
+# Colores
 BLACK = Color(0, 0, 0)
 WHITE = Color(255, 255, 255)
-RED = Color(255, 0, 0)
-GREEN = Color(0, 255, 0)
-BLUE = Color(0, 0, 255)
-YELLOW = Color(255, 255, 0)
 CYAN = Color(0, 255, 255)
-MAGENTA = Color(255, 0, 255)
 
 
 class BaseGameApp:
@@ -43,8 +44,8 @@ class BaseGameApp:
     def __init__(self):
         """Inicializa Pygame y crea la ventana."""
         # Inicializar Pygame
-        self.tileset = None
-        self.tilemap = None
+        self.tileset: TileSet | None = None
+        self.tilemap: TileMap | None = None
         pygame.init()
 
         # Crear ventana
@@ -57,11 +58,6 @@ class BaseGameApp:
         # Estado
         self.running = True
         self.frame_count = 0
-
-        # Posición del cuadrado que se mueve
-        self.square_x = 100
-        self.square_y = 100
-        self.square_speed = 5
 
         # Crear cámara
         self.camera = Camera(
@@ -87,14 +83,13 @@ class BaseGameApp:
         print(f"✓ Ventana creada: {WINDOW_WIDTH}x{WINDOW_HEIGHT}")
         print(f"✓ Cámara: {self.camera}")
 
-    def setup_tilemap(self):
+    def setup_tilemap(self, tilemap_tile_size: tuple[int, int] = (8, 8), tileset_tile_size: tuple[int, int] = (8, 8)):
         """Configura el tilemap de prueba con tileset grayscale."""
         # Generar tileset grayscale de 32 colores
         print("Generando tileset grayscale de 32 colores...")
         self.tileset = TileSet.generate_grayscale_tileset(
             nsteps=32,
-            tile_width=32,
-            tile_height=32,
+            tile_size=tileset_tile_size,
             columns=8,
             output_path="grayscale_tileset_32.png"
         )
@@ -104,8 +99,7 @@ class BaseGameApp:
         self.tilemap = TileMap(
             width=50,
             height=40,
-            tile_width=32,
-            tile_height=32,
+            tile_size=tilemap_tile_size,
             num_layers=1
         )
 
@@ -122,7 +116,6 @@ class BaseGameApp:
                 else:
                     tile_id = (31 - ((x + y) % 32))
 
-                # Correcto: set_tile(x, y, tile_id, tileset_id, layer)
                 self.tilemap.set_tile(x, y, tile_id, tileset_id=0, layer=0)
 
         print(f"✓ Tilemap creado: {self.tilemap.width}x{self.tilemap.height} tiles")
@@ -130,6 +123,9 @@ class BaseGameApp:
     def render_tilemap(self):
         """
         Renderiza el tilemap en la pantalla usando la cámara.
+
+        Esta implementación evita espacios entre tiles usando cálculo de posición
+        basado en tiles consecutivos en lugar de redondear cada tile individualmente.
         """
         if not self.tilemap or not self.tileset:
             return
@@ -140,6 +136,10 @@ class BaseGameApp:
             self.tilemap.width,
             self.tilemap.height
         )
+
+        # Calcular el tamaño escalado del tile
+        scaled_tile_width = self.tilemap.tile_width * self.camera.zoom
+        scaled_tile_height = self.tilemap.tile_height * self.camera.zoom
 
         # Renderizar cada capa
         for layer_idx in range(self.tilemap.num_layers):
@@ -166,18 +166,36 @@ class BaseGameApp:
                                 # Convertir a coordenadas de pantalla usando la cámara
                                 screen_x, screen_y = self.camera.world_to_screen(world_x, world_y)
 
-                                # Aplicar zoom al tile si es necesario
-                                if self.camera.zoom != 1.0:
-                                    # Escalar el tile según el zoom
-                                    scaled_width = int(self.tilemap.tile_width * self.camera.zoom)
-                                    scaled_height = int(self.tilemap.tile_height * self.camera.zoom)
+                                # Calcular el siguiente tile para obtener el tamaño exacto
+                                # Esto elimina espacios causados por errores de redondeo acumulados
+                                world_x_next = (tile_x + 1) * self.tilemap.tile_width
+                                world_y_next = (tile_y + 1) * self.tilemap.tile_height
+                                screen_x_next, screen_y_next = self.camera.world_to_screen(world_x_next, world_y_next)
+
+                                # Usar posiciones redondeadas
+                                x1 = round(screen_x)
+                                y1 = round(screen_y)
+                                x2 = round(screen_x_next)
+                                y2 = round(screen_y_next)
+
+                                # Calcular tamaño exacto basado en la diferencia
+                                final_width = x2 - x1
+                                final_height = y2 - y1
+
+                                # Asegurar que el tamaño sea al menos 1 pixel
+                                if final_width < 1 or final_height < 1:
+                                    continue
+
+                                # Escalar el tile al tamaño final
+                                if (tile_surface.get_width() != final_width or
+                                    tile_surface.get_height() != final_height):
                                     scaled_tile = pygame.transform.scale(
                                         tile_surface,
-                                        (scaled_width, scaled_height)
+                                        (final_width, final_height)
                                     )
-                                    self.screen.blit(scaled_tile, (int(screen_x), int(screen_y)))
+                                    self.screen.blit(scaled_tile, (x1, y1))
                                 else:
-                                    self.screen.blit(tile_surface, (int(screen_x), int(screen_y)))
+                                    self.screen.blit(tile_surface, (x1, y1))
 
     def handle_events(self):
         """Maneja eventos de teclado y ratón."""

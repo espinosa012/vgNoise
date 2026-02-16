@@ -219,8 +219,7 @@ class TileMap:
     Attributes:
         width: Width of the tilemap in tiles.
         height: Height of the tilemap in tiles.
-        tile_width: Width of each tile in pixels.
-        tile_height: Height of each tile in pixels.
+        tile_size: Size of each tile as (width, height) in pixels.
         chunk_size: Size of each chunk in tiles.
         layers: List of TileMapLayer objects.
         tilesets: Dictionary of TileSet objects indexed by tileset_id.
@@ -230,8 +229,7 @@ class TileMap:
         self,
         width: int,
         height: int,
-        tile_width: int = 32,
-        tile_height: int = 32,
+        tile_size: Tuple[int, int] = (32, 32),
         num_layers: int = 1,
         chunk_size: int = 16
     ) -> None:
@@ -241,15 +239,13 @@ class TileMap:
         Args:
             width: Width of the tilemap in tiles.
             height: Height of the tilemap in tiles.
-            tile_width: Width of each tile in pixels (default: 32).
-            tile_height: Height of each tile in pixels (default: 32).
+            tile_size: Size of each tile as (width, height) in pixels (default: (32, 32)).
             num_layers: Number of layers (default: 1).
             chunk_size: Size of each chunk in tiles (default: 16).
         """
         self.width = width
         self.height = height
-        self.tile_width = tile_width
-        self.tile_height = tile_height
+        self.tile_size = tile_size
         self.chunk_size = chunk_size
         self.layers: List[TileMapLayer] = []
         self.tilesets: Dict[int, TileSet] = {}  # tileset_id -> TileSet
@@ -257,6 +253,16 @@ class TileMap:
         # Create initial layers with chunk support
         for _ in range(num_layers):
             self.layers.append(TileMapLayer(width, height, chunk_size))
+
+    @property
+    def tile_width(self) -> int:
+        """Get tile width for backward compatibility."""
+        return self.tile_size[0]
+
+    @property
+    def tile_height(self) -> int:
+        """Get tile height for backward compatibility."""
+        return self.tile_size[1]
 
 
     @property
@@ -497,7 +503,7 @@ class TileMap:
         """String representation of the tilemap."""
         total_chunks = sum(len(layer.chunks) for layer in self.layers)
         return (f"TileMap(width={self.width}, height={self.height}, "
-                f"tile_size={self.tile_width}x{self.tile_height}, "
+                f"tile_size={self.tile_size[0]}x{self.tile_size[1]}, "
                 f"layers={len(self.layers)}, chunk_size={self.chunk_size}, "
                 f"active_chunks={total_chunks})")
 

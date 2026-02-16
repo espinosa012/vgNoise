@@ -28,28 +28,35 @@ class TileSet:
     Simple tileset class for managing tile collections.
 
     Attributes:
-        tile_width: Width of each tile in pixels.
-        tile_height: Height of each tile in pixels.
+        tile_size: Size of each tile as (width, height) in pixels.
         columns: Number of columns in the tileset.
         rows: Number of rows in the tileset.
         image_path: Path to the tileset image file.
         surface: Pygame surface containing the tileset image.
     """
 
-    def __init__(self, tile_width: int = 32, tile_height: int = 32) -> None:
+    def __init__(self, tile_size: Tuple[int, int] = (32, 32)) -> None:
         """
         Initialize a tileset.
 
         Args:
-            tile_width: Width of each tile in pixels (default: 32).
-            tile_height: Height of each tile in pixels (default: 32).
+            tile_size: Size of each tile as (width, height) in pixels (default: (32, 32)).
         """
-        self.tile_width = tile_width
-        self.tile_height = tile_height
+        self.tile_size = tile_size
         self.columns = 0
         self.rows = 0
         self.image_path: Optional[str] = None
         self.surface: Optional['pygame.Surface'] = None
+
+    @property
+    def tile_width(self) -> int:
+        """Get tile width for backward compatibility."""
+        return self.tile_size[0]
+
+    @property
+    def tile_height(self) -> int:
+        """Get tile height for backward compatibility."""
+        return self.tile_size[1]
 
     def set_grid_size(self, columns: int, rows: int) -> None:
         """
@@ -147,13 +154,12 @@ class TileSet:
 
     def __repr__(self) -> str:
         """String representation of the tileset."""
-        return f"TileSet(tile_size={self.tile_width}x{self.tile_height}, grid={self.columns}x{self.rows})"
+        return f"TileSet(tile_size={self.tile_size[0]}x{self.tile_size[1]}, grid={self.columns}x{self.rows})"
 
     @staticmethod
     def generate_tileset_from_colors(
         colors: List['Color'],
-        tile_width: int = 32,
-        tile_height: int = 32,
+        tile_size: Tuple[int, int] = (32, 32),
         columns: int = None,
         output_path: str = None
     ) -> 'TileSet':
@@ -162,8 +168,7 @@ class TileSet:
 
         Args:
             colors: List of Color objects to create tiles from.
-            tile_width: Width of each tile in pixels (default: 32).
-            tile_height: Height of each tile in pixels (default: 32).
+            tile_size: Size of each tile as (width, height) in pixels (default: (32, 32)).
             columns: Number of columns in the tileset. If None, creates a square-ish grid.
             output_path: Path to save the generated tileset image. If None, a temporary file is created.
 
@@ -188,6 +193,7 @@ class TileSet:
             pygame.init()
 
         num_tiles = len(colors)
+        tile_width, tile_height = tile_size
 
         # Calculate grid dimensions
         if columns is None:
@@ -225,7 +231,7 @@ class TileSet:
         pygame.image.save(surface, str(path))
 
         # Create and load tileset
-        tileset = TileSet(tile_width, tile_height)
+        tileset = TileSet(tile_size)
         tileset.load_from_image(str(path))
 
         return tileset
@@ -235,8 +241,7 @@ class TileSet:
         init_color: 'Color',
         final_color: 'Color',
         nsteps: int,
-        tile_width: int = 32,
-        tile_height: int = 32,
+        tile_size: Tuple[int, int] = (32, 32),
         columns: int = None,
         output_path: str = None
     ) -> 'TileSet':
@@ -250,8 +255,7 @@ class TileSet:
             init_color: Starting color of the scale.
             final_color: Ending color of the scale.
             nsteps: Number of steps in the color scale (must be >= 2).
-            tile_width: Width of each tile in pixels (default: 32).
-            tile_height: Height of each tile in pixels (default: 32).
+            tile_size: Size of each tile as (width, height) in pixels (default: (32, 32)).
             columns: Number of columns in the tileset. If None, creates a square-ish grid.
             output_path: Path to save the generated tileset image. If None, a temporary file is created.
 
@@ -270,8 +274,7 @@ class TileSet:
             ...     Colors.RED,
             ...     Colors.BLUE,
             ...     nsteps=16,
-            ...     tile_width=32,
-            ...     tile_height=32,
+            ...     tile_size=(32, 32),
             ...     columns=8,
             ...     output_path="gradient_tileset.png"
             ... )
@@ -285,8 +288,7 @@ class TileSet:
         # Generate tileset from the colors
         return TileSet.generate_tileset_from_colors(
             colors,
-            tile_width=tile_width,
-            tile_height=tile_height,
+            tile_size=tile_size,
             columns=columns,
             output_path=output_path
         )
@@ -294,8 +296,7 @@ class TileSet:
     @staticmethod
     def generate_grayscale_tileset(
         nsteps: int = 16,
-        tile_width: int = 32,
-        tile_height: int = 32,
+        tile_size: Tuple[int, int] = (32, 32),
         columns: int = None,
         output_path: str = None
     ) -> 'TileSet':
@@ -307,8 +308,7 @@ class TileSet:
 
         Args:
             nsteps: Number of grayscale steps (must be >= 2). Common values: 8, 16, 32, 64, 256.
-            tile_width: Width of each tile in pixels (default: 32).
-            tile_height: Height of each tile in pixels (default: 32).
+            tile_size: Size of each tile as (width, height) in pixels (default: (32, 32)).
             columns: Number of columns in the tileset. If None, creates a square-ish grid.
             output_path: Path to save the generated tileset image. If None, a temporary file is created.
 
@@ -324,8 +324,7 @@ class TileSet:
             >>> # Create a 16-step grayscale tileset
             >>> tileset = TileSet.generate_grayscale_tileset(
             ...     nsteps=16,
-            ...     tile_width=32,
-            ...     tile_height=32,
+            ...     tile_size=(32, 32),
             ...     columns=8,
             ...     output_path="grayscale_16.png"
             ... )
@@ -333,8 +332,7 @@ class TileSet:
             >>> # Create a 256-step grayscale tileset
             >>> tileset = TileSet.generate_grayscale_tileset(
             ...     nsteps=256,
-            ...     tile_width=16,
-            ...     tile_height=16,
+            ...     tile_size=(16, 16),
             ...     columns=16,
             ...     output_path="grayscale_256.png"
             ... )
@@ -352,8 +350,7 @@ class TileSet:
         # Generate tileset from the grayscale colors
         return TileSet.generate_tileset_from_colors(
             colors,
-            tile_width=tile_width,
-            tile_height=tile_height,
+            tile_size=tile_size,
             columns=columns,
             output_path=output_path
         )
