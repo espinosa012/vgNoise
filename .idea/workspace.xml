@@ -1,17 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="1b3760f7-cbcd-414c-ae5d-16d36f91ad5c" name="Changes" comment="camera.py">
-      <change afterPath="$PROJECT_DIR$/run_pygame_test.sh" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/game/test_scenes/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/game/test_scenes/base_scene.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/game/test_scenes/tilemap_camera_scene.py" afterDir="false" />
+    <list default="true" id="1b3760f7-cbcd-414c-ae5d-16d36f91ad5c" name="Changes" comment="updating">
+      <change afterPath="$PROJECT_DIR$/PATHFINDING_IMPLEMENTATION_SUMMARY.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/demo_pathfinding.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/virigir_math_utilities/pathfinding/README.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/virigir_math_utilities/pathfinding/heuristics.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/virigir_math_utilities/pathfinding/node.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/virigir_math_utilities/pathfinding/simple_test.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/virigir_math_utilities/pathfinding/test_pathfinding.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/test_pathfinding_quick.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/core/camera/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/camera/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/core/tilemap/tilemap.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/tilemap/tilemap.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/core/tilemap/tileset.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/tilemap/tileset.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/game/pygame_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/game/pygame_test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test_camera.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/game/test_scenes/tilemap_camera_scene.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/game/test_scenes/tilemap_camera_scene.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/virigir_math_utilities/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/virigir_math_utilities/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/virigir_math_utilities/pathfinding/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/virigir_math_utilities/pathfinding/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/virigir_math_utilities/pathfinding/astar.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/virigir_math_utilities/pathfinding/astar.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -159,7 +163,7 @@
       <workItem from="1771079818452" duration="18544000" />
       <workItem from="1771175404152" duration="6413000" />
       <workItem from="1771188074526" duration="86000" />
-      <workItem from="1771261618295" duration="2159000" />
+      <workItem from="1771261618295" duration="4973000" />
     </task>
     <task id="LOCAL-00001" summary="fisrt commit">
       <option name="closed" value="true" />
@@ -313,7 +317,15 @@
       <option name="project" value="LOCAL" />
       <updated>1771181471763</updated>
     </task>
-    <option name="localTasksCounter" value="20" />
+    <task id="LOCAL-00020" summary="updating">
+      <option name="closed" value="true" />
+      <created>1771263981349</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1771263981349</updated>
+    </task>
+    <option name="localTasksCounter" value="21" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -334,11 +346,12 @@
     <MESSAGE value="pygame inclusion" />
     <MESSAGE value="tilemap chunks" />
     <MESSAGE value="camera.py" />
-    <option name="LAST_COMMIT_MESSAGE" value="camera.py" />
+    <MESSAGE value="updating" />
+    <option name="LAST_COMMIT_MESSAGE" value="updating" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/vgNoise$run_tilemap_editor.coverage" NAME="run_tilemap_editor Coverage Results" MODIFIED="1771093416577" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/ui_tools/vgNoiseViewer" />
-    <SUITE FILE_PATH="coverage/vgNoise$pygame_test.coverage" NAME="pygame_test Coverage Results" MODIFIED="1771263596674" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src/game" />
+    <SUITE FILE_PATH="coverage/vgNoise$pygame_test.coverage" NAME="pygame_test Coverage Results" MODIFIED="1771265507344" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src/game" />
     <SUITE FILE_PATH="coverage/vgNoise$test.coverage" NAME="test Coverage Results" MODIFIED="1770483482419" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src" />
     <SUITE FILE_PATH="coverage/vgNoise$run_viewer.coverage" NAME="run_viewer Coverage Results" MODIFIED="1770544104725" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/vgNoiseViewer" />
     <SUITE FILE_PATH="coverage/vgNoise$run_noise_viewer.coverage" NAME="run_noise_viewer Coverage Results" MODIFIED="1770578394446" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/vgNoiseViewer" />

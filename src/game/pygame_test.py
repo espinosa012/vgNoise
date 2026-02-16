@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 """
-Script básico de prueba de Pygame.
+Script básico de prueba de Pygame con tilemap grande y sistema de chunks.
 
-Este script demuestra las funcionalidades básicas de pygame:
-- Crear una ventana
-- Loop de juego básico
-- Manejo de eventos (cerrar ventana, teclas)
-- Dibujar formas y colores
-- Control de FPS
-- Uso de la clase Color de vgNoise
+Este script demuestra:
+- Tilemap grande de 2024x2024 tiles
+- Sistema de chunks de 256x256 tiles
+- Renderizado eficiente basado en chunks visibles
+- Cámara con movimiento y zoom
 """
 
 import sys
@@ -21,10 +19,8 @@ if str(src_dir) not in sys.path:
 
 import pygame
 
-from core.camera import Camera
-# Importar nuestras clases
-from core.color.color import Color
-from core.tilemap import TileMap, TileSet
+# Importar escena
+from test_scenes.tilemap_camera_scene import TilemapCameraScene
 
 
 # Constantes
@@ -32,25 +28,18 @@ WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 600
 FPS = 60
 
-# Colores
-BLACK = Color(0, 0, 0)
-WHITE = Color(255, 255, 255)
-CYAN = Color(0, 255, 255)
-
 
 class BaseGameApp:
-    """Aplicación de prueba básica de Pygame."""
+    """Aplicación de prueba de Pygame con tilemap grande y chunks."""
 
     def __init__(self):
         """Inicializa Pygame y crea la ventana."""
         # Inicializar Pygame
-        self.tileset: TileSet | None = None
-        self.tilemap: TileMap | None = None
         pygame.init()
 
         # Crear ventana
         self.screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
-        pygame.display.set_caption("TileMap Render Test - vgNoise")
+        pygame.display.set_caption("Large TileMap with Chunks (2024x2024) - vgNoise")
 
         # Reloj para controlar FPS
         self.clock = pygame.time.Clock()
@@ -59,147 +48,19 @@ class BaseGameApp:
         self.running = True
         self.frame_count = 0
 
-        # Crear cámara
-        self.camera = Camera(
-            x=0, y=0,
-            width=WINDOW_WIDTH,
-            height=WINDOW_HEIGHT,
-            zoom=1.0
-        )
-        self.camera_speed = 10  # Aumentar velocidad para que sea más visible
-
-        # Crear tilemap de prueba con tileset grayscale
-        self.setup_tilemap()
-
-        # Configurar límites de cámara basados en el tilemap
-        self.camera.set_bounds_from_tilemap(
-            self.tilemap.width,
-            self.tilemap.height,
-            self.tilemap.tile_width,
-            self.tilemap.tile_height
-        )
+        # Crear y configurar la escena
+        self.scene = TilemapCameraScene()
+        self.scene.setup(WINDOW_WIDTH, WINDOW_HEIGHT)
 
         print("✓ Pygame inicializado correctamente")
         print(f"✓ Ventana creada: {WINDOW_WIDTH}x{WINDOW_HEIGHT}")
-        print(f"✓ Cámara: {self.camera}")
-
-    def setup_tilemap(self, tilemap_tile_size: tuple[int, int] = (8, 8), tileset_tile_size: tuple[int, int] = (8, 8)):
-        """Configura el tilemap de prueba con tileset grayscale."""
-        # Generar tileset grayscale de 32 colores
-        print("Generando tileset grayscale de 32 colores...")
-        self.tileset = TileSet.generate_grayscale_tileset(
-            nsteps=32,
-            tile_size=tileset_tile_size,
-            columns=8,
-            output_path="grayscale_tileset_32.png"
-        )
-        print(f"✓ Tileset generado: {self.tileset}")
-
-        # Crear tilemap de 50x40 tiles (más grande que la ventana para permitir movimiento)
-        self.tilemap = TileMap(
-            width=50,
-            height=40,
-            tile_size=tilemap_tile_size,
-            num_layers=1
-        )
-
-        # Registrar tileset en el tilemap
-        self.tilemap.add_tileset(0, self.tileset)
-
-        # Llenar el tilemap con un patrón de prueba
-        for y in range(self.tilemap.height):
-            for x in range(self.tilemap.width):
-                # Crear un patrón interesante usando los tiles
-                # Patrón de tablero de ajedrez con gradientes
-                if (x + y) % 2 == 0:
-                    tile_id = (x + y) % 32
-                else:
-                    tile_id = (31 - ((x + y) % 32))
-
-                self.tilemap.set_tile(x, y, tile_id, tileset_id=0, layer=0)
-
-        print(f"✓ Tilemap creado: {self.tilemap.width}x{self.tilemap.height} tiles")
-
-    def render_tilemap(self):
-        """
-        Renderiza el tilemap en la pantalla usando la cámara.
-
-        Esta implementación evita espacios entre tiles usando cálculo de posición
-        basado en tiles consecutivos en lugar de redondear cada tile individualmente.
-        """
-        if not self.tilemap or not self.tileset:
-            return
-
-        start_tile_x, start_tile_y, end_tile_x, end_tile_y = self.camera.get_visible_tiles(
-            self.tilemap.tile_width,
-            self.tilemap.tile_height,
-            self.tilemap.width,
-            self.tilemap.height
-        )
-
-        # Calcular el tamaño escalado del tile
-        scaled_tile_width = self.tilemap.tile_width * self.camera.zoom
-        scaled_tile_height = self.tilemap.tile_height * self.camera.zoom
-
-        # Renderizar cada capa
-        for layer_idx in range(self.tilemap.num_layers):
-            layer = self.tilemap.layers[layer_idx]
-
-            # Renderizar solo los tiles visibles
-            for tile_y in range(start_tile_y, end_tile_y):
-                for tile_x in range(start_tile_x, end_tile_x):
-                    cell = layer.get_tile(tile_x, tile_y)
-                    if cell and not cell.is_empty:
-                        tileset_id = cell.tileset_id
-                        tile_id = cell.tile_id
-
-                        # Obtener tileset
-                        tileset = self.tilemap.tilesets.get(tileset_id)
-                        if tileset and tileset.surface:
-                            # Obtener surface del tile
-                            tile_surface = tileset.get_tile_surface(tile_id)
-                            if tile_surface:
-                                # Calcular posición en mundo
-                                world_x = tile_x * self.tilemap.tile_width
-                                world_y = tile_y * self.tilemap.tile_height
-
-                                # Convertir a coordenadas de pantalla usando la cámara
-                                screen_x, screen_y = self.camera.world_to_screen(world_x, world_y)
-
-                                # Calcular el siguiente tile para obtener el tamaño exacto
-                                # Esto elimina espacios causados por errores de redondeo acumulados
-                                world_x_next = (tile_x + 1) * self.tilemap.tile_width
-                                world_y_next = (tile_y + 1) * self.tilemap.tile_height
-                                screen_x_next, screen_y_next = self.camera.world_to_screen(world_x_next, world_y_next)
-
-                                # Usar posiciones redondeadas
-                                x1 = round(screen_x)
-                                y1 = round(screen_y)
-                                x2 = round(screen_x_next)
-                                y2 = round(screen_y_next)
-
-                                # Calcular tamaño exacto basado en la diferencia
-                                final_width = x2 - x1
-                                final_height = y2 - y1
-
-                                # Asegurar que el tamaño sea al menos 1 pixel
-                                if final_width < 1 or final_height < 1:
-                                    continue
-
-                                # Escalar el tile al tamaño final
-                                if (tile_surface.get_width() != final_width or
-                                    tile_surface.get_height() != final_height):
-                                    scaled_tile = pygame.transform.scale(
-                                        tile_surface,
-                                        (final_width, final_height)
-                                    )
-                                    self.screen.blit(scaled_tile, (x1, y1))
-                                else:
-                                    self.screen.blit(tile_surface, (x1, y1))
+        print(f"✓ Escena cargada: {self.scene.name}")
 
     def handle_events(self):
         """Maneja eventos de teclado y ratón."""
-        for event in pygame.event.get():
+        events = pygame.event.get()
+
+        for event in events:
             if event.type == pygame.QUIT:
                 self.running = False
                 print("✓ Ventana cerrada por el usuario")
@@ -208,86 +69,42 @@ class BaseGameApp:
                 if event.key == pygame.K_ESCAPE:
                     self.running = False
                     print("✓ ESC presionado - cerrando")
-                elif event.key == pygame.K_SPACE:
-                    print(f"✓ Cámara: {self.camera}")
-                elif event.key == pygame.K_r:
-                    # Reset camera
-                    self.camera.set_position(0, 0)
-                    self.camera.zoom = 1.0
-                    print("✓ Cámara reseteada")
 
-            elif event.type == pygame.MOUSEWHEEL:
-                # Zoom con rueda del ratón
-                mouse_x, mouse_y = pygame.mouse.get_pos()
-                if event.y > 0:  # Scroll up = zoom in
-                    self.camera.zoom_at_point(mouse_x, mouse_y, 1.1)
-                elif event.y < 0:  # Scroll down = zoom out
-                    self.camera.zoom_at_point(mouse_x, mouse_y, 0.9)
+        # Pasar eventos a la escena
+        self.scene.handle_events(events)
 
-        # Movimiento continuo con teclas (cámara)
+        # Pasar teclas presionadas a la escena
         keys = pygame.key.get_pressed()
-
-        # Movimiento de cámara con flechas o WASD
-        if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-            self.camera.move(-self.camera_speed, 0)
-        if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-            self.camera.move(self.camera_speed, 0)
-        if keys[pygame.K_UP] or keys[pygame.K_w]:
-            self.camera.move(0, -self.camera_speed)
-        if keys[pygame.K_DOWN] or keys[pygame.K_s]:
-            self.camera.move(0, self.camera_speed)
-
-        # Zoom con + y -
-        if keys[pygame.K_PLUS] or keys[pygame.K_EQUALS]:
-            self.camera.zoom_in(1.02)
-        if keys[pygame.K_MINUS]:
-            self.camera.zoom_out(1.02)
+        self.scene.handle_keys(keys)
 
     def update(self):
         """Actualiza la lógica del juego."""
         self.frame_count += 1
 
-        # Actualizar cámara (para smooth movement)
-        self.camera.update()
+        # Calcular delta time
+        dt = self.clock.get_time() / 1000.0
+
+        # Actualizar escena
+        self.scene.update(dt)
 
     def draw(self):
-        """Dibuja toda la info en la pantalla."""
-        # Limpiar pantalla con color negro
-        self.screen.fill(BLACK.to_rgb())
+        """Dibuja la escena en la pantalla."""
+        # Limpiar y dibujar escena
+        self.scene.draw(self.screen)
 
-        # Renderizar tilemap con cámara
-        self.render_tilemap()
+        # Dibujar info de la escena
+        font = pygame.font.Font(None, 20)
+        info_lines = self.scene.get_info_text()
 
-        # Dibujar título
-        font_large = pygame.font.Font(None, 48)
-        title = font_large.render("TileMap + Camera Test", True, WHITE.to_rgb())
-        self.screen.blit(title, (WINDOW_WIDTH // 2 - title.get_width() // 2, 10))
-
-        # Dibujar info
-        font_small = pygame.font.Font(None, 18)
-        active_chunks = len(self.tilemap.get_active_chunks(layer=0))
-        info_texts = [
-            f"TileMap: {self.tilemap.width}x{self.tilemap.height} tiles",
-            f"TileSet: {self.tileset.columns}x{self.tileset.rows} (32 colors)",
-            f"Chunk size: {self.tilemap.chunk_size}x{self.tilemap.chunk_size}",
-            f"Active chunks: {active_chunks}",
-            f"Camera: ({self.camera.x:.0f}, {self.camera.y:.0f})",
-            f"Zoom: {self.camera.zoom:.2f}x",
-            f"FPS: {int(self.clock.get_fps())}",
-            "",
-            "Controls:",
-            "WASD/Arrows: Move camera",
-            "Mouse wheel: Zoom",
-            "+/- : Zoom in/out",
-            "R: Reset camera",
-            "ESC: Exit",
-        ]
-
-        y_offset = WINDOW_HEIGHT - 270
-        for text in info_texts:
-            surface = font_small.render(text, True, CYAN.to_rgb())
+        y_offset = 10
+        for line in info_lines:
+            surface = font.render(line, True, (0, 255, 255))
             self.screen.blit(surface, (10, y_offset))
-            y_offset += 20
+            y_offset += 22
+
+        # Dibujar FPS
+        fps_text = font.render(f"FPS: {int(self.clock.get_fps())}", True, (0, 255, 255))
+        self.screen.blit(fps_text, (WINDOW_WIDTH - 100, 10))
 
         # Actualizar pantalla
         pygame.display.flip()
@@ -295,8 +112,12 @@ class BaseGameApp:
     def run(self):
         """Loop principal del juego."""
         print("\n" + "=" * 60)
-        print("TILEMAP + CAMERA TEST - LOOP INICIADO")
+        print("LARGE TILEMAP WITH CHUNKS TEST")
         print("=" * 60)
+        print("Map size: 2024x2024 tiles")
+        print("Chunk size: 256x256 tiles")
+        print("Only the chunk where camera is located is rendered")
+        print()
         print("Controles:")
         print("  - WASD o Flechas: Mover cámara")
         print("  - Rueda del ratón: Zoom (centrado en cursor)")
@@ -319,26 +140,12 @@ class BaseGameApp:
             # Controlar FPS
             self.clock.tick(FPS)
 
+        # Cleanup de la escena
+        self.scene.cleanup()
+
         # Cerrar Pygame
         pygame.quit()
         print("\n✓ Pygame cerrado correctamente")
-
-        # Limpiar archivo de tileset temporal
-        self._cleanup()
-
-    def _cleanup(self):
-        """Limpia archivos temporales."""
-        import os
-        from pathlib import Path
-
-        if hasattr(self, 'tileset') and self.tileset.image_path:
-            tileset_path = Path(self.tileset.image_path)
-            if tileset_path.exists():
-                try:
-                    os.remove(tileset_path)
-                    print(f"✓ Archivo temporal eliminado: {tileset_path.name}")
-                except:
-                    pass
 
     def __del__(self):
         """Asegura que Pygame se cierre correctamente."""
@@ -351,7 +158,7 @@ class BaseGameApp:
 def main():
     """Función principal."""
     print("=" * 60)
-    print("PYGAME TEST - vgNoise Project")
+    print("PYGAME TEST - Large TileMap with Chunks - vgNoise Project")
     print("=" * 60)
     print(f"Pygame version: {pygame.version.ver}")
     print(f"SDL version: {'.'.join(map(str, pygame.get_sdl_version()))}")
