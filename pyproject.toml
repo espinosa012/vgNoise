@@ -3,16 +3,16 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "vgMath"
+name = "vgEngine"
 version = "0.1.0"
-description = "A math library for Python"
+description = "A set of tools for developing games with Python and Pygame"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
 authors = [
     { name = "Adrián R. Espinosa" }
 ]
-keywords = ["noise", "procedural", "generation", "perlin", "simplex"]
+keywords = ["pygame", "game", "framework", "pathfinding", "noise"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
