@@ -4,7 +4,7 @@ Contains base character class and controller system.
 """
 
 from .character import BaseCharacter
-from .controller import BaseCharacterController
+from .controller.base_controller import BaseCharacterController
 
 __all__ = [
     'BaseCharacter',

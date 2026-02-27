@@ -1,0 +1,14 @@
+[default]
+GlobalSeed = 0
+WorldSizeX = 2048
+WorldSizeY = 2048
+EquatorLatitude = 0
+MinContinentalHeight = 0.023
+PeaksAndValleysScale = 1.0
+ContinentalScale = 1.22
+SeaScale = 1.17647
+SeaElevationThreshold = 0.041666666
+IslandScale = 0.81
+VolcanicIslandScale = 0.81
+IslandThreshold = 0.76
+OutToSeaFactor = 0.7
