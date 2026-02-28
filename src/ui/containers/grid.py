@@ -41,12 +41,13 @@ class Grid(Container):
         border_color: Optional[Tuple[int, int, int]] = None,
         padding: int = 0,
         auto_size: bool = False,
+        clip_children: bool = False,
         parent: Optional[Widget] = None,
     ):
         super().__init__(
             x, y, width, height,
             bg_color, border_radius, border_width, border_color,
-            padding, auto_size, parent
+            padding, auto_size, clip_children, parent
         )
 
         self._columns = max(1, columns)
@@ -104,8 +105,8 @@ class Grid(Container):
             if self._rows > 0 and row >= self._rows:
                 child.visible = False
                 continue
-            else:
-                child.visible = True
+
+            child.visible = True
 
             cell_x = self._padding + col * (cell_w + self._spacing_x)
             cell_y = self._padding + row * (cell_h + self._spacing_y)

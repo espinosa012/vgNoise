@@ -44,6 +44,7 @@ class Container(Widget):
         border_color: Optional[Tuple[int, int, int]] = None,
         padding: int = 0,
         auto_size: bool = False,
+        clip_children: bool = False,
         parent: Optional[Widget] = None
     ):
         """
@@ -60,6 +61,7 @@ class Container(Widget):
             border_color: Border color.
             padding: Internal padding.
             auto_size: If True, resize to fit children.
+            clip_children: If True, children are clipped to the content area.
             parent: Parent widget.
         """
         super().__init__(x, y, width, height, parent)
@@ -70,6 +72,7 @@ class Container(Widget):
         self._border_color = border_color
         self._padding = padding
         self._auto_size = auto_size
+        self._clip_children = clip_children
 
     @property
     def bg_color(self) -> Optional[Tuple]:
@@ -91,6 +94,16 @@ class Container(Widget):
         """Set the padding."""
         self._padding = max(0, value)
         self._layout_children()
+
+    @property
+    def clip_children(self) -> bool:
+        """Whether children are clipped to the content area."""
+        return self._clip_children
+
+    @clip_children.setter
+    def clip_children(self, value: bool) -> None:
+        """Enable or disable clipping of children to the content area."""
+        self._clip_children = value
 
     @property
     def content_width(self) -> int:
@@ -221,6 +234,18 @@ class Container(Widget):
                     width=self._border_width
                 )
 
-        # Draw children
-        self.draw_children(surface)
+        # Draw children (with optional clipping to content area)
+        if self._clip_children:
+            clip_rect = pygame.Rect(
+                abs_rect.x + self._padding,
+                abs_rect.y + self._padding,
+                self.content_width,
+                self.content_height
+            )
+            old_clip = surface.get_clip()
+            surface.set_clip(clip_rect.clip(old_clip))
+            self.draw_children(surface)
+            surface.set_clip(old_clip)
+        else:
+            self.draw_children(surface)
 

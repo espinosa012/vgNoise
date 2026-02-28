@@ -79,9 +79,10 @@ class Button(Widget):
         self._border_width = border_width
         self._border_color = border_color
 
-        # Cached rendered text
+        # Cached rendered text (invalidated when text, size, or color state changes)
         self._rendered_text: Optional[pygame.Surface] = None
         self._needs_render = True
+        self._last_render_color: Optional[tuple] = None
 
     @property
     def text(self) -> str:
@@ -94,6 +95,7 @@ class Button(Widget):
         if self._text != value:
             self._text = value
             self._needs_render = True
+            self._last_render_color = None
 
     def _get_current_bg_color(self) -> Tuple[int, int, int]:
         """Get the background color based on current state."""
@@ -121,15 +123,20 @@ class Button(Widget):
         return pygame.font.Font(None, size)
 
     def _render_text(self) -> None:
-        """Render the text to a surface."""
+        """Render the text to a surface, only when text or color has changed."""
         if not self._text:
             self._rendered_text = None
+            self._last_render_color = None
             return
 
-        font = self._get_font()
         color = self._get_text_color()
+        if not self._needs_render and color == self._last_render_color:
+            return  # Nothing changed — reuse the cached surface
+
+        font = self._get_font()
         self._rendered_text = font.render(self._text, True, color)
         self._needs_render = False
+        self._last_render_color = color
 
     def draw(self, surface: pygame.Surface) -> None:
         """Draw the button."""
@@ -174,7 +181,7 @@ class Button(Widget):
                     width=self._border_width
                 )
 
-        # Draw text (always re-render for color changes)
+        # Draw text (re-renders only when text or color state has changed)
         self._render_text()
 
         if self._rendered_text:

@@ -50,6 +50,7 @@ class BaseGameApp:
         self.running = True
         self.frame_count = 0
 
+
         # Crear y configurar la escena
         self.scene = NoiseEditorScene()
         self.scene.on_enter()

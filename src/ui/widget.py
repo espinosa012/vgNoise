@@ -224,13 +224,27 @@ class Widget(ABC):
         """
         Get the absolute position in screen coordinates.
 
+        Traverses the parent hierarchy, accounting for any scroll offsets
+        applied by parent containers (e.g. ScrollView).
+
         Returns:
             Tuple of (x, y) in screen coordinates.
         """
         if self._parent:
             parent_x, parent_y = self._parent.get_absolute_position()
-            return self._rect.x + parent_x, self._rect.y + parent_y
+            off_x, off_y = self._parent._get_scroll_offset_for_children()
+            return self._rect.x + parent_x + off_x, self._rect.y + parent_y + off_y
         return self._rect.x, self._rect.y
+
+    def _get_scroll_offset_for_children(self) -> tuple[int, int]:
+        """
+        Return the offset applied to direct children's absolute positions.
+
+        Override in scrollable containers (e.g. ScrollView) to shift children
+        by the current scroll amount so that hit-testing and drawing are
+        always consistent.
+        """
+        return 0, 0
 
     def contains_point(self, x: int, y: int) -> bool:
         """
