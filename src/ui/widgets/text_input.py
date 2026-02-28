@@ -118,6 +118,9 @@ class TextInput(Widget):
         # Scroll offset for long text
         self._scroll_offset = 0
 
+        # Undo history: list of (text, cursor_pos) snapshots
+        self._undo_stack: List[Tuple[str, int]] = []
+
         # Callbacks
         self._on_change: Optional[Callable[[TextInput], None]] = None
         self._on_submit: Optional[Callable[[TextInput], None]] = None
@@ -157,6 +160,18 @@ class TextInput(Widget):
     def on_submit(self, callback: Callable[['TextInput'], None]) -> 'TextInput':
         self._on_submit = callback
         return self
+
+    # -------------------------------------------------------------------------
+    # Undo helpers
+    # -------------------------------------------------------------------------
+
+    def _push_undo(self) -> None:
+        """Save current (text, cursor_pos) to the undo stack (max 100 entries)."""
+        state = (self._text, self._cursor_pos)
+        if not self._undo_stack or self._undo_stack[-1] != state:
+            self._undo_stack.append(state)
+            if len(self._undo_stack) > 100:
+                del self._undo_stack[0]
 
     # -------------------------------------------------------------------------
     # Selection helpers
@@ -354,6 +369,7 @@ class TextInput(Widget):
             if self._has_selection():
                 start, end = self._selection_range()
                 _clipboard_set(self._text[start:end])
+                self._push_undo()
                 self._delete_selection()
             return True
 
@@ -361,7 +377,20 @@ class TextInput(Widget):
         if event.key == pygame.K_v and ctrl:
             text = _clipboard_get()
             if text:
+                self._push_undo()
                 self._insert_text(text)
+            return True
+
+        # ── Undo ──────────────────────────────────────────────────────────────
+        if event.key == pygame.K_z and ctrl:
+            if self._undo_stack:
+                text, pos = self._undo_stack.pop()
+                self._text = text
+                self._cursor_pos = min(pos, len(text))
+                self._sel_anchor = -1
+                self._update_scroll()
+                if self._on_change:
+                    self._on_change(self)
             return True
 
         # ── Cursor movement ───────────────────────────────────────────────────
@@ -419,6 +448,7 @@ class TextInput(Widget):
 
         # ── Deletion ─────────────────────────────────────────────────────────
         if event.key == pygame.K_BACKSPACE:
+            self._push_undo()
             if ctrl and not self._has_selection():
                 # Delete word to the left
                 new_pos = self._find_word_start(self._cursor_pos)
@@ -432,6 +462,7 @@ class TextInput(Widget):
             return True
 
         if event.key == pygame.K_DELETE:
+            self._push_undo()
             if ctrl and not self._has_selection():
                 # Delete word to the right
                 end = self._find_word_end(self._cursor_pos)
@@ -457,6 +488,7 @@ class TextInput(Widget):
 
         # ── Printable character ───────────────────────────────────────────────
         if event.unicode and event.unicode.isprintable():
+            self._push_undo()
             self._insert_text(event.unicode)
             return True
 

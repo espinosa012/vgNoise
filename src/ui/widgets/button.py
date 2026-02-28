@@ -178,8 +178,9 @@ class Button(Widget):
         else:
             pygame.draw.rect(surface, bg_color, abs_rect)
 
-        # Draw border
-        if self._border_width > 0:
+        # Draw border (always shown when focused; otherwise only if border_width > 0)
+        border_w = self._border_width if self._border_width > 0 else (1 if self.focused else 0)
+        if border_w > 0:
             border_color = self._border_color or (255, 255, 255)
 
             if self.focused:
@@ -190,7 +191,7 @@ class Button(Widget):
                     surface,
                     border_color,
                     abs_rect,
-                    width=self._border_width,
+                    width=border_w,
                     border_radius=self._border_radius
                 )
             else:
@@ -198,7 +199,7 @@ class Button(Widget):
                     surface,
                     border_color,
                     abs_rect,
-                    width=self._border_width
+                    width=border_w
                 )
 
         # Draw text (re-renders only when text or color state has changed)

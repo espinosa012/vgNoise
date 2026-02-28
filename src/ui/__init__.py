@@ -56,7 +56,8 @@ from .widgets import (
     Checkbox,
     Slider,
     TextInput,
-    Dropdown
+    Dropdown,
+    NumericInput,
 )
 
 # Import containers
@@ -83,6 +84,7 @@ __all__ = [
     'Slider',
     'TextInput',
     'Dropdown',
+    'NumericInput',
 
     # Containers
     'Container',

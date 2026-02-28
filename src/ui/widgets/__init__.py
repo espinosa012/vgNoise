@@ -12,6 +12,7 @@ from .checkbox import Checkbox
 from .slider import Slider
 from .text_input import TextInput
 from .dropdown import Dropdown
+from .numeric_input import NumericInput
 
 __all__ = [
     'Label',
@@ -22,5 +23,6 @@ __all__ = [
     'Slider',
     'TextInput',
     'Dropdown',
+    'NumericInput',
 ]
 

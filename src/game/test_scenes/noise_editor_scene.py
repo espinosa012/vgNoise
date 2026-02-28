@@ -31,7 +31,7 @@ from src.core.tilemap.tileset import TileSet
 from src.core.camera.camera import Camera
 from src.ui import (
     UIManager, Label, Button, TextInput, Checkbox, Slider,
-    VBox, HBox, ScrollView, Dropdown,
+    VBox, HBox, ScrollView, Dropdown, NumericInput,
 )
 from .base_scene import BaseScene
 
@@ -122,9 +122,17 @@ def _section_spacer() -> Label:
     return Label(text="", font_size=4, auto_size=True)
 
 
-def _text_input(default: str = "0") -> TextInput:
-    return TextInput(
-        width=80, height=26, text=default, font_size=16, max_length=20,
+def _numeric_input(
+    default: float,
+    *,
+    min_value: float = float("-inf"),
+    max_value: float = float("inf"),
+    step: float = 1.0,
+) -> NumericInput:
+    return NumericInput(
+        width=80, height=26,
+        value=default, min_value=min_value, max_value=max_value, step=step,
+        font_size=16,
         bg_color=INPUT_BG, text_color=(255, 255, 255),
         border_color=INPUT_BORDER, focus_border_color=FOCUS_BORDER,
         border_radius=4,
@@ -293,7 +301,7 @@ class NoiseEditorScene(BaseScene):
     def _build_general_section(self, parent: VBox, content_w: int):
         parent.add_child(_section_title("─── General ───"))
 
-        inp_seed = _text_input("0")
+        inp_seed = _numeric_input(0, min_value=0, max_value=2**31 - 1, step=1)
         self._ctrl["seed"] = inp_seed
         parent.add_child(_row("Seed", inp_seed, content_w=content_w))
 
@@ -301,15 +309,15 @@ class NoiseEditorScene(BaseScene):
         self._ctrl["noise_type"] = dd_noise
         parent.add_child(_row("Noise type", dd_noise, content_w=content_w))
 
-        inp_freq = _text_input("0.01")
+        inp_freq = _numeric_input(0.01, min_value=0.0001, max_value=10.0, step=0.001)
         self._ctrl["frequency"] = inp_freq
         parent.add_child(_row("Frequency", inp_freq, content_w=content_w))
 
-        inp_ox = _text_input("0")
+        inp_ox = _numeric_input(0, min_value=-10000, max_value=10000, step=10)
         self._ctrl["offset_x"] = inp_ox
         parent.add_child(_row("Offset X", inp_ox, content_w=content_w))
 
-        inp_oy = _text_input("0")
+        inp_oy = _numeric_input(0, min_value=-10000, max_value=10000, step=10)
         self._ctrl["offset_y"] = inp_oy
         parent.add_child(_row("Offset Y", inp_oy, content_w=content_w))
 
@@ -321,23 +329,23 @@ class NoiseEditorScene(BaseScene):
         self._ctrl["fractal_type"] = dd_frac
         parent.add_child(_row("Fractal type", dd_frac, content_w=content_w))
 
-        inp_oct = _text_input("5")
+        inp_oct = _numeric_input(5, min_value=1, max_value=16, step=1)
         self._ctrl["octaves"] = inp_oct
         parent.add_child(_row("Octaves", inp_oct, content_w=content_w))
 
-        inp_lac = _text_input("2.0")
+        inp_lac = _numeric_input(2.0, min_value=0.1, max_value=8.0, step=0.1)
         self._ctrl["lacunarity"] = inp_lac
         parent.add_child(_row("Lacunarity", inp_lac, content_w=content_w))
 
-        inp_per = _text_input("0.5")
+        inp_per = _numeric_input(0.5, min_value=0.0, max_value=1.0, step=0.05)
         self._ctrl["persistence"] = inp_per
         parent.add_child(_row("Persistence", inp_per, content_w=content_w))
 
-        inp_ws = _text_input("0.0")
+        inp_ws = _numeric_input(0.0, min_value=-1.0, max_value=2.0, step=0.05)
         self._ctrl["weighted_strength"] = inp_ws
         parent.add_child(_row("Weighted str.", inp_ws, content_w=content_w))
 
-        inp_pp = _text_input("2.0")
+        inp_pp = _numeric_input(2.0, min_value=0.0, max_value=10.0, step=0.1)
         self._ctrl["ping_pong_strength"] = inp_pp
         parent.add_child(_row("Ping-pong str.", inp_pp, content_w=content_w))
 
@@ -353,7 +361,7 @@ class NoiseEditorScene(BaseScene):
         self._ctrl["cellular_return_type"] = dd_ret
         parent.add_child(_row("Return type", dd_ret, content_w=content_w))
 
-        inp_jit = _text_input("1.0")
+        inp_jit = _numeric_input(1.0, min_value=0.0, max_value=2.0, step=0.05)
         self._ctrl["cellular_jitter"] = inp_jit
         parent.add_child(_row("Jitter", inp_jit, content_w=content_w))
 
@@ -372,11 +380,11 @@ class NoiseEditorScene(BaseScene):
         self._ctrl["domain_warp_type"] = dd_dwt
         parent.add_child(_row("Warp type", dd_dwt, content_w=content_w))
 
-        inp_amp = _text_input("30.0")
+        inp_amp = _numeric_input(30.0, min_value=0.0, max_value=500.0, step=1.0)
         self._ctrl["domain_warp_amplitude"] = inp_amp
         parent.add_child(_row("Amplitude", inp_amp, content_w=content_w))
 
-        inp_dwf = _text_input("0.05")
+        inp_dwf = _numeric_input(0.05, min_value=0.0001, max_value=1.0, step=0.005)
         self._ctrl["domain_warp_frequency"] = inp_dwf
         parent.add_child(_row("Frequency", inp_dwf, content_w=content_w))
 
@@ -384,15 +392,15 @@ class NoiseEditorScene(BaseScene):
         self._ctrl["domain_warp_fractal_type"] = dd_dwft
         parent.add_child(_row("Fractal type", dd_dwft, content_w=content_w))
 
-        inp_dwo = _text_input("5")
+        inp_dwo = _numeric_input(5, min_value=1, max_value=16, step=1)
         self._ctrl["domain_warp_fractal_octaves"] = inp_dwo
         parent.add_child(_row("Octaves", inp_dwo, content_w=content_w))
 
-        inp_dwl = _text_input("2.0")
+        inp_dwl = _numeric_input(2.0, min_value=0.1, max_value=8.0, step=0.1)
         self._ctrl["domain_warp_fractal_lacunarity"] = inp_dwl
         parent.add_child(_row("Lacunarity", inp_dwl, content_w=content_w))
 
-        inp_dwg = _text_input("0.5")
+        inp_dwg = _numeric_input(0.5, min_value=0.0, max_value=2.0, step=0.05)
         self._ctrl["domain_warp_fractal_gain"] = inp_dwg
         parent.add_child(_row("Gain", inp_dwg, content_w=content_w))
 
@@ -400,11 +408,11 @@ class NoiseEditorScene(BaseScene):
         parent.add_child(_section_spacer())
         parent.add_child(_section_title("─── Dimensiones ───"))
 
-        inp_w = _text_input("256")
+        inp_w = _numeric_input(256, min_value=1, max_value=4096, step=16)
         self._ctrl["preview_w"] = inp_w
         parent.add_child(_row("Ancho (X)", inp_w, content_w=content_w))
 
-        inp_h = _text_input("256")
+        inp_h = _numeric_input(256, min_value=1, max_value=4096, step=16)
         self._ctrl["preview_h"] = inp_h
         parent.add_child(_row("Alto (Y)", inp_h, content_w=content_w))
 

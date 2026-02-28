@@ -13,6 +13,8 @@ class Checkbox(Widget):
     """
     A checkbox widget for boolean input.
 
+    Keyboard: Space/Enter toggles when focused. Tab passes through to UIManager.
+
     Features:
     - Check/uncheck toggle
     - Optional label text
@@ -27,6 +29,8 @@ class Checkbox(Widget):
             on_change=lambda cb: print(f"Checked: {cb.checked}")
         )
     """
+
+    _focusable = True
 
     def __init__(
         self,
@@ -162,6 +166,23 @@ class Checkbox(Widget):
         self._rendered_text = font.render(self._text, True, color)
         self._needs_render = False
 
+    def handle_event(self, event: pygame.event.Event) -> bool:
+        """Toggle with Space/Enter when focused; Tab falls through."""
+        if not self._state.visible or not self._state.enabled:
+            return False
+
+        if self.focused and event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_TAB:
+                return False
+            if event.key in (pygame.K_SPACE, pygame.K_RETURN, pygame.K_KP_ENTER):
+                self.toggle()
+                return True
+            if event.key == pygame.K_ESCAPE:
+                self.blur()
+                return True
+
+        return super().handle_event(event)
+
     def _handle_mouse_up(self, event: pygame.event.Event) -> bool:
         """Handle mouse button up - toggle on click."""
         if event.button != 1:
@@ -190,6 +211,9 @@ class Checkbox(Widget):
         if not self.enabled:
             box_color = (60, 60, 60)
             border_color = (100, 100, 100)
+        elif self.focused:
+            box_color = self._box_color or (50, 50, 50)
+            border_color = (66, 135, 245)  # Blue focus ring
         elif self.hovered:
             box_color = (70, 70, 70)
             border_color = (100, 160, 255)
