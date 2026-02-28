@@ -789,8 +789,8 @@ class Matrix2D:
             return float(np.sum(self._data[self._mask]))
         return float(np.sum(self._data))
 
-    def clip(self, min_value: float, max_value: float) -> "Matrix2D":
-        """Clip values to range [min_value, max_value]."""
+    def clamp_values(self, min_value: float, max_value: float) -> "Matrix2D":
+        """Return a copy with all values clamped to [min_value, max_value]."""
         result = self.copy()
         np.clip(result._data, min_value, max_value, out=result._data)
         return result

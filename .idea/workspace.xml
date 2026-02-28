@@ -4,12 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="1b3760f7-cbcd-414c-ae5d-16d36f91ad5c" name="Changes" comment="updating scene">
+    <list default="true" id="1b3760f7-cbcd-414c-ae5d-16d36f91ad5c" name="Changes" comment="improvung ui navigation">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/game/test_scenes/noise_editor_scene.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/game/test_scenes/noise_editor_scene.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/widgets/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/widgets/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/widgets/text_input.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/widgets/text_input.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/vgworld/world/generation/elevation.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/vgworld/world/generation/elevation.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/vgworld/world/world.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/vgworld/world/world.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/virigir_math_utilities/matrix/matrix2d.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/virigir_math_utilities/matrix/matrix2d.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -153,7 +152,7 @@
       <workItem from="1772207976926" duration="17402000" />
       <workItem from="1772281256831" duration="71000" />
       <workItem from="1772281338859" duration="228000" />
-      <workItem from="1772281831440" duration="12520000" />
+      <workItem from="1772281831440" duration="15478000" />
     </task>
     <task id="LOCAL-00001" summary="fisrt commit">
       <option name="closed" value="true" />
@@ -427,14 +426,29 @@
       <option name="project" value="LOCAL" />
       <updated>1772298974485</updated>
     </task>
-    <option name="localTasksCounter" value="35" />
+    <task id="LOCAL-00035" summary="improvung ui navigation">
+      <option name="closed" value="true" />
+      <created>1772301076109</created>
+      <option name="number" value="00035" />
+      <option name="presentableId" value="LOCAL-00035" />
+      <option name="project" value="LOCAL" />
+      <updated>1772301076109</updated>
+    </task>
+    <task id="LOCAL-00036" summary="improvung ui navigation">
+      <option name="closed" value="true" />
+      <created>1772303546049</created>
+      <option name="number" value="00036" />
+      <option name="presentableId" value="LOCAL-00036" />
+      <option name="project" value="LOCAL" />
+      <updated>1772303546049</updated>
+    </task>
+    <option name="localTasksCounter" value="37" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="fisrt commit" />
     <MESSAGE value="visor updated for zoom" />
     <MESSAGE value="vgmatrix y refactor" />
     <MESSAGE value="vgmatrix" />
@@ -459,10 +473,22 @@
     <MESSAGE value="improving ui" />
     <MESSAGE value="noise refactor" />
     <MESSAGE value="updating scene" />
-    <option name="LAST_COMMIT_MESSAGE" value="updating scene" />
+    <MESSAGE value="improvung ui navigation" />
+    <option name="LAST_COMMIT_MESSAGE" value="improvung ui navigation" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/src/virigir_math_utilities/noise/generators/opensimplex2d.py</url>
+          <line>8</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/vgEngine$pygame_test.coverage" NAME="pygame_test Coverage Results" MODIFIED="1772299303402" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src/game" />
+    <SUITE FILE_PATH="coverage/vgEngine$pygame_test.coverage" NAME="pygame_test Coverage Results" MODIFIED="1772300932753" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src/game" />
     <SUITE FILE_PATH="coverage/vgNoise$run_tilemap_editor.coverage" NAME="run_tilemap_editor Coverage Results" MODIFIED="1771093416577" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/ui_tools/vgNoiseViewer" />
     <SUITE FILE_PATH="coverage/vgNoise$app.coverage" NAME="app Coverage Results" MODIFIED="1771083678360" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/ui_tools/vgNoiseViewer/tilemap_editor" />
     <SUITE FILE_PATH="coverage/vgEngine$demo_ui_framework.coverage" NAME="demo_ui_framework Coverage Results" MODIFIED="1772209068041" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
