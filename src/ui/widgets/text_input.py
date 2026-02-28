@@ -2,23 +2,36 @@
 TextInput widget for text entry.
 """
 
+import platform
+import subprocess
 from typing import Optional, Tuple, Callable
 
 import pygame
 
 from ..widget import Widget
 
+_PLATFORM = platform.system()
+
 
 def _clipboard_get() -> str:
     """Return plain text from the system clipboard, or '' on failure."""
     try:
-        if not pygame.scrap.get_init():
-            pygame.scrap.init()
-        data = pygame.scrap.get(pygame.SCRAP_TEXT)
-        if data is None:
-            return ""
-        text = data.decode("utf-8", errors="replace")
-        # Normalize line endings and take only the first line (single-line input)
+        if _PLATFORM == "Darwin":
+            text = subprocess.run(["pbpaste"], capture_output=True).stdout.decode("utf-8", errors="replace")
+        elif _PLATFORM == "Windows":
+            text = subprocess.run(
+                ["powershell", "-noprofile", "-command", "Get-Clipboard"],
+                capture_output=True,
+            ).stdout.decode("utf-8", errors="replace")
+        else:
+            try:
+                text = subprocess.run(
+                    ["xclip", "-selection", "clipboard", "-o"], capture_output=True
+                ).stdout.decode("utf-8", errors="replace")
+            except FileNotFoundError:
+                text = subprocess.run(
+                    ["xsel", "--clipboard", "--output"], capture_output=True
+                ).stdout.decode("utf-8", errors="replace")
         return text.replace("\r\n", "\n").replace("\r", "\n").split("\n")[0]
     except Exception:
         return ""
@@ -27,9 +40,15 @@ def _clipboard_get() -> str:
 def _clipboard_set(text: str) -> None:
     """Copy *text* to the system clipboard, silently ignoring errors."""
     try:
-        if not pygame.scrap.get_init():
-            pygame.scrap.init()
-        pygame.scrap.put(pygame.SCRAP_TEXT, text.encode("utf-8"))
+        if _PLATFORM == "Darwin":
+            subprocess.run(["pbcopy"], input=text.encode("utf-8"), check=True)
+        elif _PLATFORM == "Windows":
+            subprocess.run(["clip"], input=text.encode("utf-16-le"), check=True)
+        else:
+            try:
+                subprocess.run(["xclip", "-selection", "clipboard"], input=text.encode("utf-8"), check=True)
+            except FileNotFoundError:
+                subprocess.run(["xsel", "--clipboard", "--input"], input=text.encode("utf-8"), check=True)
     except Exception:
         pass
 
