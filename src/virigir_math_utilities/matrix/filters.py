@@ -575,6 +575,41 @@ class MatrixFilters:
 
         return kernel
 
+    # =========================================================================
+    # Tone / Color Correction Filters
+    # =========================================================================
+
+    @staticmethod
+    def gamma(array: NDArray[np.float64], gamma: float) -> NDArray[np.float64]:
+        """
+        Apply gamma correction to a matrix whose values are in the [0, 1] range.
+
+        Gamma < 1 brightens the image (lifts shadows).
+        Gamma > 1 darkens the image (crushes highlights).
+        Gamma = 1 leaves the values unchanged.
+
+        Usage example::
+
+            corrected = MatrixFilters.gamma(matrix_array, 0.5)
+
+        Args:
+            array: Input matrix with values in the [0, 1] range.
+            gamma: Desired gamma value (must be > 0).
+
+        Returns:
+            Matrix with gamma correction applied, values in [0, 1].
+
+        Raises:
+            ValueError: If gamma <= 0.
+        """
+        if gamma <= 0:
+            raise ValueError(f"Gamma must be positive, got {gamma}")
+
+        arr = np.asarray(array, dtype=np.float64)
+        arr = np.clip(arr, 0.0, 1.0)
+        return np.power(arr, gamma)
+
+
     @staticmethod
     def separable(row_kernel: list, col_kernel: list) -> NDArray[np.float64]:
         """

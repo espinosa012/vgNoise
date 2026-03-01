@@ -36,7 +36,7 @@ from src.core.tilemap.tileset import TileSet
 from src.core.camera.camera import Camera
 from src.ui import (
     UIManager, Label, Button, Checkbox, Dropdown,
-    VBox, HBox, ScrollView, NumericInput, TabBar,
+    VBox, HBox, ScrollView, NumericInput, TabBar, TextInput,
 )
 from .base_scene import BaseScene
 
@@ -128,12 +128,12 @@ _NOISE_FIELD_CONFIG = [
     ("Offset Y",        "offset_y",                   'int',      -10000, 10000,   10),
     ("Fractal Type",    "fractal_type",               'dropdown', _FRACTAL_TYPE_NAMES, None, None),
     ("Octaves",         "octaves",                    'int',      1,      16,      1),
-    ("Lacunarity",      "lacunarity",                 'float',    0.1,    8.0,     0.1),
-    ("Persistence",     "persistence",                'float',    0.0,    1.0,     0.05),
-    ("Weighted Str.",   "weighted_strength",          'float',    -1.0,   2.0,     0.05),
+    ("Lacunarity",      "lacunarity",                 'float',    0.1,    8.0,     0.01),
+    ("Persistence",     "persistence",                'float',    0.0,    1.0,     0.01),
+    ("Weighted Str.",   "weighted_strength",          'float',    -1.0,   2.0,     0.01),
     ("Domain Warp",     "domain_warp_enabled",        'bool',     None,   None,    None),
-    ("DW Amplitude",    "domain_warp_amplitude",      'float',    0.0,    500.0,   1.0),
-    ("DW Frequency",    "domain_warp_frequency",      'float',    0.0001, 1.0,     0.005),
+    ("DW Amplitude",    "domain_warp_amplitude",      'float',    0.0,    500.0,   0.01),
+    ("DW Frequency",    "domain_warp_frequency",      'float',    0.0001, 1.0,     0.01),
     ("DW Octaves",      "domain_warp_fractal_octaves",'int',      1,      16,      1),
 ]
 
@@ -223,6 +223,15 @@ def _dropdown_small(options: List[str], index: int = 0, w: int = 150) -> Dropdow
     )
 
 
+def _text_input(text: str = "", w: int = 150) -> TextInput:
+    return TextInput(
+        width=w, height=26, text=text,
+        font_size=16, text_color=(255, 255, 255),
+        bg_color=INPUT_BG, border_color=INPUT_BORDER,
+        focus_border_color=FOCUS_BORDER, border_radius=4,
+    )
+
+
 def _make_noise_widget(field_type: str, config_value, arg0, arg1, arg2):
     """Create the right widget for a noise field."""
     if field_type == 'int':
@@ -304,13 +313,16 @@ class WorldEditorScene(BaseScene):
         self._param_status: Optional[Label] = None
 
         # Noises tab state
-        self._noise_sub_bar: Optional[TabBar] = None
+        self._noise_dropdown: Optional[Dropdown] = None
         self._noise_inner_scroll: Optional[ScrollView] = None
+        self._noise_name_input: Optional[TextInput] = None
         self._active_noise_idx: int = 0
         self._noise_tab_vboxes: Dict[str, VBox] = {}   # noise_name → VBox (cached)
         self._noise_controls: Dict[str, Dict[str, tuple]] = {}  # noise_name → {key: (widget, type)}
 
-        # Matrices tab controls
+        # Matrices/noise preview size (persisted across panel rebuilds)
+        self._saved_pw: int = 1024
+        self._saved_ph: int = 1024
         self._preview_w: Optional[NumericInput] = None
         self._preview_h: Optional[NumericInput] = None
         self._matrix_status: Dict[str, Label] = {}
@@ -389,7 +401,9 @@ class WorldEditorScene(BaseScene):
             self._world = VGWorld("default_parameters")
             print("[WorldEditor] VGWorld loaded.")
         except Exception as e:
+            import traceback
             print(f"[WorldEditor] VGWorld unavailable: {e}")
+            traceback.print_exc()
             self._world = None
 
     # ── UI construction ───────────────────────────────────────────────────────
@@ -423,14 +437,20 @@ class WorldEditorScene(BaseScene):
         )
         self._ui.add(self._scroll_view)
 
-        # ── Fixed bottom bar: always-visible "Previsualizar" button ──────────
+        # ── Fixed bottom bar: size controls + "Previsualizar" ────────────────
         bar_y = sh - BOTTOM_BAR_H
         self._bottom_bar = HBox(
             x=0, y=bar_y, width=pw, height=BOTTOM_BAR_H,
-            spacing=10, align='center', justify='center', auto_size=False,
+            spacing=8, align='center', justify='center', auto_size=False,
             bg_color=(32, 32, 48, 255),
         )
-        self._preview_btn = _btn("Previsualizar", BTN_PRV_BG, BTN_PRV_HV, w=160, h=34)
+        self._bottom_bar.add_child(_lbl("X:", font_size=15))
+        self._preview_w = _numeric(self._saved_pw, min_value=16, max_value=2048, step=16, w=100)
+        self._bottom_bar.add_child(self._preview_w)
+        self._bottom_bar.add_child(_lbl("Y:", font_size=15))
+        self._preview_h = _numeric(self._saved_ph, min_value=16, max_value=2048, step=16, w=100)
+        self._bottom_bar.add_child(self._preview_h)
+        self._preview_btn = _btn("Previsualizar", BTN_PRV_BG, BTN_PRV_HV, w=140, h=34)
         self._preview_btn.on_click(lambda _: self._preview_selected_noise())
         self._bottom_bar.add_child(self._preview_btn)
         self._ui.add(self._bottom_bar)
@@ -555,16 +575,35 @@ class WorldEditorScene(BaseScene):
         outer.add_child(_title("── Visualización de Noises ──"))
         outer.add_child(_spacer())
 
-        # Sub-tab bar for each noise
-        self._noise_sub_bar = TabBar(
-            x=0, y=0, width=cw, height=32,
-            tabs=self._noise_names,
-            selected_index=self._active_noise_idx,
-            font_size=15,
-            active_bg_color=(45, 80, 140),
+        # Dropdown to select the active noise
+        selector_row = HBox(width=cw, height=30, spacing=8, align='center', auto_size=False)
+        sel_lbl = _lbl("Noise:", font_size=15)
+        sel_lbl.width = 52
+        selector_row.add_child(sel_lbl)
+        self._noise_dropdown = _dropdown_small(
+            self._noise_names, self._active_noise_idx, w=max(60, cw - 60),
         )
-        self._noise_sub_bar.on_tab_change(self._on_noise_sub_tab_change)
-        outer.add_child(self._noise_sub_bar)
+        self._noise_dropdown.on_change(self._on_noise_dropdown_change)
+        selector_row.add_child(self._noise_dropdown)
+        outer.add_child(selector_row)
+
+        # Name row: editable key name + Randomize + save button
+        name_row = HBox(width=cw, height=30, spacing=6, align='center', auto_size=False)
+        name_lbl = _lbl("Nombre:", font_size=15)
+        name_lbl.width = 68
+        name_row.add_child(name_lbl)
+        self._noise_name_input = _text_input(
+            text=self._noise_names[self._active_noise_idx] if self._noise_names else "",
+            w=max(60, cw - 230),
+        )
+        name_row.add_child(self._noise_name_input)
+        btn_rand = _btn("Rand", (90, 60, 120), (110, 80, 145), w=52, h=26)
+        btn_rand.on_click(lambda _: self._randomize_noise_seed())
+        name_row.add_child(btn_rand)
+        btn_save = _btn("Guardar", BTN_APL_BG, BTN_APL_HV, w=80, h=26)
+        btn_save.on_click(lambda _: self._save_noise_to_config())
+        name_row.add_child(btn_save)
+        outer.add_child(name_row)
 
         # Inner scroll for editable noise fields (fills remaining space in the tab)
         inner_h = 420
@@ -583,12 +622,25 @@ class WorldEditorScene(BaseScene):
 
         return outer
 
-    def _on_noise_sub_tab_change(self, idx: int) -> None:
+    def _on_noise_dropdown_change(self, idx: int, _text: str = "") -> None:
         self._active_noise_idx = idx
+        if self._noise_name_input and idx < len(self._noise_names):
+            self._noise_name_input.text = self._noise_names[idx]
         if self._noise_inner_scroll is None or not self._noise_names:
             return
         inner_cw = self._panel_content_w() - 2 * SCROLL_PAD - SCROLLBAR_W
         self._refresh_noise_view(idx, max(60, inner_cw))
+
+    def _randomize_noise_seed(self) -> None:
+        """Set a random seed on the active noise's seed control."""
+        import random
+        name = self._noise_names[self._active_noise_idx] if self._noise_names else None
+        if name is None:
+            return
+        controls = self._noise_controls.get(name, {})
+        seed_widget, _ = controls.get("seed", (None, None))
+        if seed_widget is not None:
+            seed_widget.text = str(random.randint(0, 9_999_999))
 
     def _refresh_noise_view(self, idx: int, inner_cw: int) -> None:
         """Swap _noise_inner_scroll content to the noise at idx, building lazily."""
@@ -647,6 +699,51 @@ class WorldEditorScene(BaseScene):
             self._set_status(f"Error: {e}")
             print(f"[WorldEditor] {e}")
 
+    def _save_noise_to_config(self) -> None:
+        """Save the currently edited noise to config.json under the given name."""
+        if self._noise_name_input is None or not self._noise_names:
+            self._set_status("No hay noise activo")
+            return
+        save_name = self._noise_name_input.text.strip()
+        if not save_name:
+            self._set_status("El nombre no puede estar vacío")
+            return
+
+        # Collect UI values for the currently selected noise
+        current_name = self._noise_names[self._active_noise_idx] if self._active_noise_idx < len(self._noise_names) else ""
+        cfg = dict(self._noise_configs.get(current_name, {}))
+        for key, (widget, wtype) in self._noise_controls.get(current_name, {}).items():
+            cfg[key] = _read_noise_widget(widget, wtype)
+
+        try:
+            with open(CONFIG_JSON, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if "noise" not in data:
+                data["noise"] = {}
+            data["noise"][save_name] = cfg
+            with open(CONFIG_JSON, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+
+            is_new = save_name not in self._noise_names
+            self._noise_configs[save_name] = cfg
+            if is_new:
+                self._noise_names.append(save_name)
+                self._active_noise_idx = len(self._noise_names) - 1
+                # Rebuild noises tab to show the new sub-tab
+                self._tab_vboxes[self.TAB_NOISES] = None
+                self._noise_tab_vboxes = {}
+                self._noise_controls = {}
+                self._noise_dropdown = None
+                self._noise_inner_scroll = None
+                self._noise_name_input = None
+                if self._active_tab == self.TAB_NOISES:
+                    self._show_tab(self.TAB_NOISES)
+
+            self._set_status(f"{'Creado' if is_new else 'Actualizado'}: {save_name}")
+        except Exception as e:
+            self._set_status(f"Error al guardar: {e}")
+            print(f"[WorldEditor] _save_noise_to_config: {e}")
+
     # ═══════════════════════ TAB: MATRICES ════════════════════════════════════
 
     def _build_matrices_tab(self, cw: int) -> VBox:
@@ -655,64 +752,59 @@ class WorldEditorScene(BaseScene):
         vbox.add_child(_title("── Matrices del Mundo ──"))
         vbox.add_child(_spacer())
 
-        # Preview size row
-        size_row = HBox(width=cw, height=28, spacing=10, align='center', auto_size=False)
-        size_row.add_child(_lbl("Tamaño preview:"))
-        self._preview_w = _numeric(256, min_value=16, max_value=2048, step=16, w=115)
-        self._preview_h = _numeric(256, min_value=16, max_value=2048, step=16, w=115)
-        size_row.add_child(_lbl("X:"))
-        size_row.add_child(self._preview_w)
-        size_row.add_child(_lbl("Y:"))
-        size_row.add_child(self._preview_h)
-        vbox.add_child(size_row)
+        # Build the full matrix list from WorldMatrixName enum (auto-includes new entries).
+        # _MATRIX_CONFIG provides optional metadata (noise key, binarize); unknown entries
+        # fall back to (member.value, None, False).
+        try:
+            _, _, _, WMN = _get_world_classes()
+            all_matrix_items = [
+                (m.name, *_MATRIX_CONFIG.get(m.name, (m.value, None, False)))
+                for m in WMN
+            ]
+        except Exception:
+            # Fallback: use only the static config
+            all_matrix_items = [
+                (k, lbl, nk, bz) for k, (lbl, nk, bz) in _MATRIX_CONFIG.items()
+            ]
 
-        vbox.add_child(_spacer())
+        VER_W = 52
+        NAME_W = max(60, cw - VER_W - 8)
 
-        # One row per matrix
-        self._matrix_status = {}
-        self._matrix_view_buttons = {}
-        # keep already-generated state across rebuilds
-        for mat_key in _MATRIX_CONFIG:
-            if mat_key not in self._matrix_generated:
-                self._matrix_generated[mat_key] = False
-
-        GEN_W, VER_W, STA_W = 72, 52, 80
-        NAME_W = max(60, cw - GEN_W - VER_W - STA_W - 3 * 8)
-
-        for mat_key, (mat_label, noise_key, do_binarize) in _MATRIX_CONFIG.items():
+        for mat_key, mat_label, _noise_key, _do_binarize in all_matrix_items:
             row = HBox(width=cw, height=30, spacing=8, align='center', auto_size=False)
 
             name_lbl = _lbl(mat_label)
             name_lbl.width = NAME_W
             row.add_child(name_lbl)
 
-            if noise_key is not None:
-                btn_gen = _btn("Generar", BTN_GEN_BG, BTN_GEN_HV, w=GEN_W, h=26)
-                def _make_gen(mk=mat_key, nk=noise_key, bz=do_binarize):
-                    return lambda _: self._generate_matrix(mk, nk, bz)
-                btn_gen.on_click(_make_gen())
-            else:
-                btn_gen = _btn("N/I", (55, 55, 55), (65, 65, 65), w=GEN_W, h=26)
-                btn_gen.enabled = False
-            row.add_child(btn_gen)
-
-            # "Ver" button – enabled only after generation
             btn_ver = _btn("Ver", BTN_PRV_BG, BTN_PRV_HV, w=VER_W, h=26)
-            btn_ver.enabled = self._matrix_generated.get(mat_key, False)
-            def _make_ver(mk=mat_key):
-                return lambda _: self._show_stored_matrix(mk)
+            def _make_ver(mk=mat_key, ml=mat_label):
+                return lambda _: self._view_world_matrix(mk, ml)
             btn_ver.on_click(_make_ver())
-            self._matrix_view_buttons[mat_key] = btn_ver
             row.add_child(btn_ver)
-
-            status_lbl = _lbl("—", color=(120, 120, 140))
-            status_lbl.width = STA_W
-            self._matrix_status[mat_key] = status_lbl
-            row.add_child(status_lbl)
 
             vbox.add_child(row)
 
         return vbox
+
+    def _view_world_matrix(self, mat_key: str, mat_label: str) -> None:
+        """Render a world matrix (from self._world.matrix) in the tilemap viewer."""
+        if self._world is None:
+            self._set_status("No hay mundo generado")
+            return
+        try:
+            _, _, _, WMN = _get_world_classes()
+            enum_member = WMN[mat_key]
+            matrix = self._world.matrix.get(enum_member)
+            if matrix is None:
+                self._set_status(f"Matriz '{mat_label}' no disponible")
+                return
+            h, w = matrix._data.shape
+            self._show_matrix(matrix, f"Matriz: {mat_label}", w, h)
+            self._set_status(f"Visualizando: {mat_label}  ({h}×{w})")
+        except Exception as e:
+            self._set_status(f"Error: {e}")
+            print(f"[WorldEditor] _view_world_matrix: {e}")
 
     def _generate_matrix(self, mat_key: str, noise_key: str, binarize: bool) -> None:
         cfg = self._noise_configs.get(noise_key)
@@ -742,7 +834,7 @@ class WorldEditorScene(BaseScene):
             if lbl:
                 lbl.text = "✓ Listo"
                 lbl.color = (100, 200, 100)
-            mat_label = _MATRIX_CONFIG[mat_key][0]
+            mat_label = _MATRIX_CONFIG.get(mat_key, (mat_key,))[0]
             self._show_matrix(matrix, f"Matriz: {mat_label}", pw, ph)
             self._set_status(f"Generada: {mat_label}  ({ph}×{pw})")
         except Exception as e:
@@ -943,6 +1035,20 @@ class WorldEditorScene(BaseScene):
         surf = font.render(info, True, (195, 195, 195))
         screen.blit(surf, (self._panel_width + 8, 6))
 
+        # Cell value under cursor
+        mx, my = pygame.mouse.get_pos()
+        if mx > self._panel_width and self._current_matrix is not None:
+            zoom = cam.zoom
+            world_x = (mx - self._panel_width) / zoom + cam.x
+            world_y = my / zoom + cam.y
+            tile_x = int(world_x / TILE_SIZE)
+            tile_y = int(world_y / TILE_SIZE)
+            if 0 <= tile_x < self._map_w and 0 <= tile_y < self._map_h:
+                value = self._current_matrix._data[tile_y, tile_x]
+                cell_text = f"Celda ({tile_x},{tile_y}) = {value:.4f}"
+                cell_surf = font.render(cell_text, True, (255, 220, 100))
+                screen.blit(cell_surf, (self._panel_width + 8, 24))
+
         hint = "WASD/Flechas: mover | Q/E: zoom | ESC: salir"
         h_surf = font.render(hint, True, (110, 110, 130))
         screen.blit(h_surf, (self._panel_width + 8, screen.get_height() - 20))
@@ -950,10 +1056,15 @@ class WorldEditorScene(BaseScene):
     # ── Panel rebuild (after divider drag) ───────────────────────────────────
 
     def _rebuild_panel(self) -> None:
+        # Persist preview size across rebuild
+        self._saved_pw, self._saved_ph = self._get_preview_size()
         # Invalidate cached tab vboxes (width changed)
         self._tab_vboxes = [None, None, None]
-        self._noise_sub_bar = None
+        self._noise_tab_vboxes = {}
+        self._noise_controls = {}
+        self._noise_dropdown = None
         self._noise_inner_scroll = None
+        self._noise_name_input = None
         screen = pygame.display.get_surface()
         sw, sh = screen.get_size()
         self._ui.clear()

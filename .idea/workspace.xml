@@ -5,16 +5,28 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="1b3760f7-cbcd-414c-ae5d-16d36f91ad5c" name="Changes" comment="pipeline first approach">
-      <change afterPath="$PROJECT_DIR$/src/vgworld/world/generation/latitude.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/vgworld/world/misc/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/vgworld/world/misc/enums.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ARCHIVOS_CREADOS.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/RESUMEN_FINAL.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/TERRAIN_TILESET_SUMMARY.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/THEMES_ELIMINATION_SUMMARY.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/UI_FRAMEWORK_SUMMARY.md" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/configs/config.json" beforeDir="false" afterPath="$PROJECT_DIR$/configs/config.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/game/pygame_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/game/pygame_test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/game/test_scenes/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/game/test_scenes/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/widgets/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/widgets/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/demo_ui_framework.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ejemplos_ui.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/melkart.db" beforeDir="false" afterPath="$PROJECT_DIR$/melkart.db" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/run_pygame_test.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/game/test_scenes/world_editor_scene.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/game/test_scenes/world_editor_scene.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/containers/scroll_view.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/containers/scroll_view.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/widgets/image.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/widgets/image.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/widgets/text_input.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/widgets/text_input.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/vgworld/world/generation/elevation.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/vgworld/world/generation/elevation.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/vgworld/world/world.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/vgworld/world/world.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/virigir_math_utilities/matrix/matrix2d.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/virigir_math_utilities/matrix/matrix2d.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/virigir_math_utilities/matrix/filters.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/virigir_math_utilities/matrix/filters.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test_full_scene.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/test_random_terrain.py" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -32,8 +44,8 @@
   <component name="CopilotUserSelectedModel">
     <selectedModels>
       <entry key="edit-panel" value="GPT-5 mini" />
-      <entry key="chat-panel" value="GPT-5 mini" />
-      <entry key="agent-panel" value="GPT-5 mini" />
+      <entry key="chat-panel" value="Claude Sonnet 4.6" />
+      <entry key="agent-panel" value="Claude Sonnet 4.6" />
     </selectedModels>
   </component>
   <component name="FileTemplateManagerImpl">
@@ -158,7 +170,7 @@
       <workItem from="1772207976926" duration="17402000" />
       <workItem from="1772281256831" duration="71000" />
       <workItem from="1772281338859" duration="228000" />
-      <workItem from="1772281831440" duration="20280000" />
+      <workItem from="1772281831440" duration="32885000" />
     </task>
     <task id="LOCAL-00001" summary="fisrt commit">
       <option name="closed" value="true" />
@@ -456,7 +468,15 @@
       <option name="project" value="LOCAL" />
       <updated>1772303873288</updated>
     </task>
-    <option name="localTasksCounter" value="38" />
+    <task id="LOCAL-00038" summary="pipeline first approach">
+      <option name="closed" value="true" />
+      <created>1772309036214</created>
+      <option name="number" value="00038" />
+      <option name="presentableId" value="LOCAL-00038" />
+      <option name="project" value="LOCAL" />
+      <updated>1772309036214</updated>
+    </task>
+    <option name="localTasksCounter" value="39" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -502,7 +522,7 @@
     </breakpoint-manager>
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/vgEngine$pygame_test.coverage" NAME="pygame_test Coverage Results" MODIFIED="1772307541793" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src/game" />
+    <SUITE FILE_PATH="coverage/vgEngine$pygame_test.coverage" NAME="pygame_test Coverage Results" MODIFIED="1772382219414" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src/game" />
     <SUITE FILE_PATH="coverage/vgNoise$run_tilemap_editor.coverage" NAME="run_tilemap_editor Coverage Results" MODIFIED="1771093416577" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/ui_tools/vgNoiseViewer" />
     <SUITE FILE_PATH="coverage/vgNoise$app.coverage" NAME="app Coverage Results" MODIFIED="1771083678360" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/ui_tools/vgNoiseViewer/tilemap_editor" />
     <SUITE FILE_PATH="coverage/vgEngine$demo_ui_framework.coverage" NAME="demo_ui_framework Coverage Results" MODIFIED="1772209068041" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />

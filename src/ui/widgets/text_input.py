@@ -539,7 +539,7 @@ class TextInput(Widget):
         )
 
         old_clip = surface.get_clip()
-        surface.set_clip(content_rect)
+        surface.set_clip(content_rect.clip(old_clip))
 
         font = self._get_font()
 

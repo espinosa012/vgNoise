@@ -290,18 +290,29 @@ class ScrollView(Container):
                     self.scroll_y = self._scroll_start_y + delta_y * (scroll_range / scrollable_track)
                 return True
 
-        # --- Mouse wheel ---
-        if event.type == pygame.MOUSEWHEEL:
-            if self.contains_point(*pygame.mouse.get_pos()):
-                self.scroll_y = self._scroll_y - event.y * self._scroll_speed
-                return True
+        # --- Guard: only dispatch click events that land within this viewport ---
+        # This prevents nested ScrollViews from processing clicks that are
+        # spatially outside their bounds (e.g. a click on a sibling widget
+        # above the inner scroll should not be swallowed by the inner scroll).
+        # MOUSEWHEEL is exempt: the wheel check below uses contains_point itself.
+        if event.type in (pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP):
+            if not self.contains_point(event.pos[0], event.pos[1]):
+                return False
 
-        # --- Dispatch to children ---
+        # --- Dispatch to children first ---
         # No viewport restriction here: children check their own contains_point.
         # Removing the restriction allows open dropdown lists (drawn outside the
         # clipped viewport via draw_overlay) to still receive click events.
+        # MOUSEWHEEL is also dispatched to children first so that nested
+        # ScrollViews can consume the event before the outer one does.
         for child in reversed(self._children):
             if child.handle_event(event):
+                return True
+
+        # --- Mouse wheel (only if no child consumed it) ---
+        if event.type == pygame.MOUSEWHEEL:
+            if self.contains_point(*pygame.mouse.get_pos()):
+                self.scroll_y = self._scroll_y - event.y * self._scroll_speed
                 return True
 
         # Handle container-level mouse events (hover tracking, etc.)

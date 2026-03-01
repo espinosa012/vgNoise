@@ -224,7 +224,7 @@ class ImageWidget(Widget):
             if self._scale_mode == self.SCALE_FILL:
                 # Create a subsurface for clipping
                 clip_rect = surface.get_clip()
-                surface.set_clip(abs_rect)
+                surface.set_clip(abs_rect.clip(clip_rect))
 
                 surface.blit(
                     self._scaled_surface,
