@@ -16,6 +16,7 @@ DEFAULT_NOISE_CONFIG_PATH = Path(__file__).parent.parent.parent.parent / "config
 
 # TODO: cuando implementemos las pipelines, pedir un README.md del world
 
+# TODO: necesitamos método para regenerar, volver a cargar noises y params
 
 class VGWorld:
     parameters: dict[WorldParameterName, float | int]
@@ -23,13 +24,15 @@ class VGWorld:
     matrix: dict[WorldMatrixName, Matrix2D]
 
     def __init__(self, config_name: str = "default_parameters"):
-        self.load_parameters_from_toml(config_name)
-        self.initialize_noise(config_name)
-        self.initialize_matrix()
-
+        self.regenerate_world(config_name)
         # TODO: pruebas
         self.run_generation_pipeline_for_region(0, self.parameters[WorldParameterName.world_size_x], 0,
                                                 self.parameters[WorldParameterName.world_size_y])
+
+    def regenerate_world(self, config_name: str = "default_parameters"):
+        self.load_parameters_from_toml(config_name)
+        self.initialize_noise(config_name)
+        self.initialize_matrix()
 
     def load_parameters_from_toml(self, config_name: str) -> None:
         self.parameters = {}
@@ -84,7 +87,8 @@ class VGWorld:
                                init_x, final_x, init_y, final_y)
 
     def run_elevation_stage_for_region(self, init_x: int, final_x: int, init_y: int, final_y: int):
-        #elevation.run_elevation_generation_pipeline(self.noise, self.matrix, self.parameters, init_x, final_x, init_y, final_y)
+        elevation.run_elevation_generation_pipeline(self.noise, self.matrix, self.parameters, init_x, final_x, init_y, final_y)
+        """
         elevation.fill_continental_elevation(self.matrix[WorldMatrixName.continental_elevation],
                                              self.noise[WorldNoiseName.base_elevation],
                                              self.noise[WorldNoiseName.peaks_and_valleys],
@@ -109,10 +113,37 @@ class VGWorld:
                                     self.parameters[WorldParameterName.sea_elevation_threshold], init_x, final_x,
                                     init_y, final_y)
         """
-        """
 
     def run_river_stage_for_region(self, init_x: int, final_x: int, init_y: int, final_y: int):
         pass
 
     def run_temperature_stage_for_region(self, init_x: int, final_x: int, init_y: int, final_y: int):
         pass
+
+    # ------------------------------------------------------------------
+    # Movement / Pathfinding
+    # ------------------------------------------------------------------
+
+    def is_walkable(self, x: int, y: int) -> bool:
+        """
+        Return whether the world cell at (x, y) can be walked on.
+
+        This is the single point where world rules about passability live.
+        The tilemap stores *what* is at each cell; this method decides
+        *what that means* for movement (e.g. deep water blocks, forests
+        slow but don't block, etc.).
+
+        TODO: implement actual walkability logic based on world matrices
+              and tile semantics once the biome / tile system is defined.
+
+        Args:
+            x: Grid x coordinate.
+            y: Grid y coordinate.
+
+        Returns:
+            True if the cell is passable, False otherwise.
+        """
+        raise NotImplementedError(
+            "is_walkable() must be implemented once tile semantics are defined."
+        )
+

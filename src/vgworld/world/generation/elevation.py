@@ -12,8 +12,9 @@ def run_elevation_generation_pipeline(noise: dict[WorldNoiseName, NoiseGenerator
                                          init_x, final_x, init_y, final_y)
     pv: Matrix2D = Matrix2D.from_noise(noise[WorldNoiseName.peaks_and_valleys],
                                        init_x, final_x, init_y, final_y)
-    matrix[WorldMatrixName.elevation] = (cont * parameters[WorldParameterName.sea_scale]) * (
-                pv * parameters[WorldParameterName.peaks_and_valleys_scale])
+
+    matrix[WorldMatrixName.elevation] = ((cont + (pv * parameters[WorldParameterName.peaks_and_valleys_scale]))
+                                         .clamp_values(parameters[WorldParameterName.min_continental_height], 1.0))
 
 
 # Deprecated

@@ -262,7 +262,7 @@ class MatrixFilters:
         Returns:
             Tuple of (horizontal kernel, vertical kernel).
         """
-        return (MatrixFilters.sobel_horizontal(), MatrixFilters.sobel_vertical())
+        return MatrixFilters.sobel_horizontal(), MatrixFilters.sobel_vertical()
 
     @staticmethod
     def prewitt_horizontal() -> NDArray[np.float64]:

@@ -19,7 +19,6 @@ class BaseCharacter(GameObject):
         speed: Movement speed in pixels per second
         velocity_x: Current horizontal velocity
         velocity_y: Current vertical velocity
-        facing_direction: Direction the character is facing
         is_moving: Whether the character is currently moving
     """
 
@@ -49,7 +48,6 @@ class BaseCharacter(GameObject):
         self.velocity_y: float = 0.0
 
         # State
-        self.facing_direction: str = "right"  # "left", "right", "up", "down"
         self.is_moving: bool = False
 
     # ==================== Properties ====================
@@ -115,30 +113,12 @@ class BaseCharacter(GameObject):
         """
         self.velocity_x = vx
         self.velocity_y = vy
-        self._update_facing_direction(vx, vy)
 
     def stop(self):
         """Stop all character movement."""
         self.velocity_x = 0.0
         self.velocity_y = 0.0
         self.is_moving = False
-
-    def _update_facing_direction(self, dx: float, dy: float):
-        """
-        Update facing direction based on movement.
-
-        Args:
-            dx: Horizontal direction
-            dy: Vertical direction
-        """
-        if dx > 0:
-            self.facing_direction = "right"
-        elif dx < 0:
-            self.facing_direction = "left"
-        elif dy > 0:
-            self.facing_direction = "down"
-        elif dy < 0:
-            self.facing_direction = "up"
 
     # ==================== Health Methods ====================
 

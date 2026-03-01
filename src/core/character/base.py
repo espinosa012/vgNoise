@@ -1,35 +1,191 @@
+from pathlib import Path
+from typing import Optional, Tuple
+
+try:
+    import pygame
+    HAS_PYGAME = True
+except ImportError:
+    HAS_PYGAME = False
+
 from core.base.game_object import GameObject
+from core.character.movement_component import MovementComponent
+
+GridPos = Tuple[int, int]
 
 
 class BaseCharacter(GameObject):
     """
     Base class for all character entities (player, enemies, NPCs).
     Inherits from GameObject and adds character-specific functionality.
+
+    Grid-based movement is handled via a MovementComponent that uses A*
+    pathfinding. Subclasses should override _cell_is_walkable() to define
+    their own walkability rules; the world reference is passed in so that
+    the character can query it without coupling to the tilemap directly.
     """
 
-    def __init__(self, x: float = 0, y: float = 0, name: str = None):
+    def __init__(
+        self,
+        x: float = 0,
+        y: float = 0,
+        name: str = None,
+        world=None,
+        grid_pos: GridPos = (0, 0),
+        move_speed: float = 4.0,
+        sprite_path: Optional[str | Path] = None,
+    ):
         """
         Initialize a character.
 
         Args:
-            x: Initial x position
-            y: Initial y position
-            name: Optional name for the character
+            x:           Initial pixel x position.
+            y:           Initial pixel y position.
+            name:        Optional name for the character.
+            world:       VGWorld instance used for walkability queries.
+            grid_pos:    Initial position in grid (cell) coordinates.
+            move_speed:  Grid-based movement speed in cells per second.
+            sprite_path: Path to the .png sprite file. When pygame is
+                         available the image is loaded immediately;
+                         otherwise the attribute is set to None.
         """
         super().__init__(x, y, name)
 
         # Character-specific properties
         self.health: float = 100.0
         self.max_health: float = 100.0
-        self.speed: float = 100.0  # pixels per second
+        self.speed: float = 100.0  # pixels per second (free movement)
 
-        # Movement
+        # Free movement velocity (legacy / non-grid movement)
         self.velocity_x: float = 0.0
         self.velocity_y: float = 0.0
 
         # State
         self.facing_direction: str = "right"  # "left", "right", "up", "down"
         self.is_moving: bool = False
+
+        # ------------------------------------------------------------------
+        # Grid-based movement
+        # ------------------------------------------------------------------
+        self.world = world
+        self.grid_x: int = grid_pos[0]
+        self.grid_y: int = grid_pos[1]
+
+        self._movement: Optional[MovementComponent] = None
+        if world is not None:
+            self._movement = MovementComponent(
+                is_walkable_fn=self._cell_is_walkable,
+                move_speed=move_speed,
+            )
+
+        # ------------------------------------------------------------------
+        # Sprite
+        # ------------------------------------------------------------------
+        # Holds the loaded pygame.Surface for the character's static sprite.
+        # Will be replaced by an animation system in the future.
+        self.sprite: Optional["pygame.Surface"] = None
+        if sprite_path is not None:
+            self.load_sprite(sprite_path)
+
+    # ------------------------------------------------------------------
+    # Sprite
+    # ------------------------------------------------------------------
+
+    def load_sprite(self, sprite_path: str | Path) -> None:
+        """
+        Load a static sprite from a .png file.
+
+        Requires pygame to be initialised before calling this method
+        (pygame.display must have been set up so that convert_alpha()
+        works correctly).
+
+        Args:
+            sprite_path: Path to the .png image file.
+
+        Raises:
+            RuntimeError: If pygame is not available.
+            FileNotFoundError: If the file does not exist.
+        """
+        if not HAS_PYGAME:
+            raise RuntimeError("pygame is required to load sprites.")
+
+        path = Path(sprite_path)
+        if not path.exists():
+            raise FileNotFoundError(f"Sprite file not found: {path}")
+
+        self.sprite = pygame.image.load(str(path)).convert_alpha()
+
+    # ------------------------------------------------------------------
+    # Grid position
+    # ------------------------------------------------------------------
+
+    @property
+    def grid_position(self) -> GridPos:
+        """Current position in grid (cell) coordinates."""
+        return (self.grid_x, self.grid_y)
+
+    # ------------------------------------------------------------------
+    # Walkability — override in subclasses
+    # ------------------------------------------------------------------
+
+    def _cell_is_walkable(self, pos: GridPos) -> bool:
+        """
+        Decide whether the character can walk on the given cell.
+
+        Delegates to world.is_walkable by default. Override in subclasses
+        to add character-specific restrictions (e.g. blocking water, lava…).
+
+        Args:
+            pos: (x, y) grid position to test.
+
+        Returns:
+            True if the cell is passable for this character.
+        """
+        if self.world is None:
+            return True
+        return self.world.is_walkable(pos[0], pos[1])
+
+    # ------------------------------------------------------------------
+    # Grid-based movement API
+    # ------------------------------------------------------------------
+
+    def move_to(self, destination: GridPos) -> bool:
+        """
+        Request grid-based movement to destination using A* pathfinding.
+
+        Args:
+            destination: Target (x, y) grid position.
+
+        Returns:
+            True if a valid path was found and movement has started.
+        """
+        if self._movement is None:
+            return False
+        return self._movement.request_move_to(self.grid_position, destination)
+
+    def stop_grid_movement(self) -> None:
+        """Interrupt grid-based movement immediately."""
+        if self._movement is not None:
+            self._movement.stop()
+
+    def on_move(self, new_pos: GridPos) -> None:
+        """
+        Hook called after each grid step.
+
+        Override in subclasses to trigger animations, sounds, etc.
+
+        Args:
+            new_pos: The new (x, y) grid position after the step.
+        """
+        pass
+
+    def _on_step(self, new_pos: GridPos) -> None:
+        """Internal callback wired to MovementComponent.update()."""
+        self.grid_x, self.grid_y = new_pos
+        self.on_move(new_pos)
+
+    # ------------------------------------------------------------------
+    # Update
+    # ------------------------------------------------------------------
 
     def update(self, delta_time: float):
         """
@@ -38,22 +194,33 @@ class BaseCharacter(GameObject):
         Args:
             delta_time: Time elapsed since last frame in seconds
         """
-        # Apply velocity
+        # Free (pixel-space) movement
         if self.velocity_x != 0 or self.velocity_y != 0:
             self.translate(self.velocity_x * delta_time, self.velocity_y * delta_time)
             self.is_moving = True
         else:
             self.is_moving = False
 
-    def render(self, renderer):
+        # Grid-based movement
+        if self._movement is not None:
+            self._movement.update(delta_time, on_step=self._on_step)
+            if self._movement.is_moving:
+                self.is_moving = True
+
+    def render(self, surface: "pygame.Surface") -> None:
         """
-        Render the character.
-        Override this in subclasses for specific rendering.
+        Draw the character on a pygame surface.
+
+        Delegates to self.shape.draw(), which renders the character using
+        pygame primitives. Override in subclasses for additional elements
+        (health bars, name tags, debug info…).
 
         Args:
-            renderer: Renderer object to draw with
+            surface: The pygame.Surface to draw onto.
         """
-        pass
+        if not HAS_PYGAME:
+            return
+        self.shape.draw(surface, self.x, self.y)
 
     def take_damage(self, amount: float):
         """
@@ -62,7 +229,7 @@ class BaseCharacter(GameObject):
         Args:
             amount: Damage amount
         """
-        self.health = max(0, self.health - amount)
+        self.health = max(0.0, self.health - amount)
         if self.health <= 0:
             self.on_death()
 

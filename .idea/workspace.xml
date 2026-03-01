@@ -4,29 +4,17 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="1b3760f7-cbcd-414c-ae5d-16d36f91ad5c" name="Changes" comment="pipeline first approach">
-      <change afterPath="$PROJECT_DIR$/src/vgworld/world/misc/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/vgworld/world/misc/enums.py" afterDir="false" />
+    <list default="true" id="1b3760f7-cbcd-414c-ae5d-16d36f91ad5c" name="Changes" comment="improving">
+      <change afterPath="$PROJECT_DIR$/src/core/character/movement_component.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/core/character/shape.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ARCHIVOS_CREADOS.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/RESUMEN_FINAL.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/TERRAIN_TILESET_SUMMARY.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/THEMES_ELIMINATION_SUMMARY.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/UI_FRAMEWORK_SUMMARY.md" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/configs/config.json" beforeDir="false" afterPath="$PROJECT_DIR$/configs/config.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/demo_ui_framework.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/ejemplos_ui.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/melkart.db" beforeDir="false" afterPath="$PROJECT_DIR$/melkart.db" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/run_pygame_test.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/core/character/base.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/character/base.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/game/character/character.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/game/character/character.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/game/test_scenes/world_editor_scene.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/game/test_scenes/world_editor_scene.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/containers/scroll_view.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/containers/scroll_view.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/widgets/image.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/widgets/image.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/widgets/text_input.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/widgets/text_input.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/vgworld/world/generation/elevation.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/vgworld/world/generation/elevation.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/vgworld/world/world.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/vgworld/world/world.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/virigir_math_utilities/matrix/filters.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/virigir_math_utilities/matrix/filters.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test_full_scene.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test_random_terrain.py" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -79,43 +67,43 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;Python tests.pytest in test_demo.py.executor&quot;: &quot;Run&quot;,
-    &quot;Python.Unnamed.executor&quot;: &quot;Run&quot;,
-    &quot;Python.app.executor&quot;: &quot;Run&quot;,
-    &quot;Python.demo_pathfinding.executor&quot;: &quot;Run&quot;,
-    &quot;Python.demo_ui_framework.executor&quot;: &quot;Run&quot;,
-    &quot;Python.ejemplos_ui.executor&quot;: &quot;Run&quot;,
-    &quot;Python.matrix_app.executor&quot;: &quot;Run&quot;,
-    &quot;Python.noise_dialog.executor&quot;: &quot;Run&quot;,
-    &quot;Python.pygame_test.executor&quot;: &quot;Run&quot;,
-    &quot;Python.python3.13.executor&quot;: &quot;Run&quot;,
-    &quot;Python.run_matrix_editor.executor&quot;: &quot;Run&quot;,
-    &quot;Python.run_noise_viewer.executor&quot;: &quot;Run&quot;,
-    &quot;Python.run_tilemap_editor.executor&quot;: &quot;Run&quot;,
-    &quot;Python.run_viewer.executor&quot;: &quot;Run&quot;,
-    &quot;Python.test.executor&quot;: &quot;Run&quot;,
-    &quot;Python.tilemap_canvas.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
-    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;SHELLCHECK.PATH&quot;: &quot;/home/deck/.local/share/JetBrains/PyCharm2025.3/Shell Script/shellcheck&quot;,
-    &quot;ai.playground.ignore.import.keys.banner.in.settings&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/Users/espinosa012/vg/vgEngine&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Python tests.pytest in test_demo.py.executor": "Run",
+    "Python.Unnamed.executor": "Run",
+    "Python.app.executor": "Run",
+    "Python.demo_pathfinding.executor": "Run",
+    "Python.demo_ui_framework.executor": "Run",
+    "Python.ejemplos_ui.executor": "Run",
+    "Python.matrix_app.executor": "Run",
+    "Python.noise_dialog.executor": "Run",
+    "Python.pygame_test.executor": "Run",
+    "Python.python3.13.executor": "Run",
+    "Python.run_matrix_editor.executor": "Run",
+    "Python.run_noise_viewer.executor": "Run",
+    "Python.run_tilemap_editor.executor": "Run",
+    "Python.run_viewer.executor": "Run",
+    "Python.test.executor": "Run",
+    "Python.tilemap_canvas.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "SHELLCHECK.PATH": "/home/deck/.local/share/JetBrains/PyCharm2025.3/Shell Script/shellcheck",
+    "ai.playground.ignore.import.keys.banner.in.settings": "true",
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "/Users/espinosa012/vg/vgEngine",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "preferences.pluginManager",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="PyConsoleOptionsProvider">
     <option name="myPythonConsoleState">
       <console-settings module-name="vgEngine" is-module-sdk="true">
@@ -170,7 +158,7 @@
       <workItem from="1772207976926" duration="17402000" />
       <workItem from="1772281256831" duration="71000" />
       <workItem from="1772281338859" duration="228000" />
-      <workItem from="1772281831440" duration="32885000" />
+      <workItem from="1772281831440" duration="39031000" />
     </task>
     <task id="LOCAL-00001" summary="fisrt commit">
       <option name="closed" value="true" />
@@ -476,14 +464,21 @@
       <option name="project" value="LOCAL" />
       <updated>1772309036214</updated>
     </task>
-    <option name="localTasksCounter" value="39" />
+    <task id="LOCAL-00039" summary="improving">
+      <option name="closed" value="true" />
+      <created>1772382455111</created>
+      <option name="number" value="00039" />
+      <option name="presentableId" value="LOCAL-00039" />
+      <option name="project" value="LOCAL" />
+      <updated>1772382455111</updated>
+    </task>
+    <option name="localTasksCounter" value="40" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="vgmatrix y refactor" />
     <MESSAGE value="vgmatrix" />
     <MESSAGE value="project refactoring, new tilemap and ui tools" />
     <MESSAGE value="color class" />
@@ -508,7 +503,8 @@
     <MESSAGE value="updating scene" />
     <MESSAGE value="improvung ui navigation" />
     <MESSAGE value="pipeline first approach" />
-    <option name="LAST_COMMIT_MESSAGE" value="pipeline first approach" />
+    <MESSAGE value="improving" />
+    <option name="LAST_COMMIT_MESSAGE" value="improving" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -522,7 +518,7 @@
     </breakpoint-manager>
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/vgEngine$pygame_test.coverage" NAME="pygame_test Coverage Results" MODIFIED="1772382219414" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src/game" />
+    <SUITE FILE_PATH="coverage/vgEngine$pygame_test.coverage" NAME="pygame_test Coverage Results" MODIFIED="1772390510342" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src/game" />
     <SUITE FILE_PATH="coverage/vgNoise$run_tilemap_editor.coverage" NAME="run_tilemap_editor Coverage Results" MODIFIED="1771093416577" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/ui_tools/vgNoiseViewer" />
     <SUITE FILE_PATH="coverage/vgNoise$app.coverage" NAME="app Coverage Results" MODIFIED="1771083678360" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/ui_tools/vgNoiseViewer/tilemap_editor" />
     <SUITE FILE_PATH="coverage/vgEngine$demo_ui_framework.coverage" NAME="demo_ui_framework Coverage Results" MODIFIED="1772209068041" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />

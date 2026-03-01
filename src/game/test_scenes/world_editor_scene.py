@@ -182,10 +182,11 @@ def _spacer() -> Label:
     return Label(text="", font_size=6, auto_size=True)
 
 
-def _numeric(value, *, min_value, max_value, step, w=90) -> NumericInput:
+def _numeric(value, *, min_value, max_value, step, w=90, decimals: int = -1) -> NumericInput:
     return NumericInput(
         width=w, height=26, value=value,
         min_value=min_value, max_value=max_value, step=step,
+        decimals=decimals,
         font_size=16, bg_color=INPUT_BG, text_color=(255, 255, 255),
         border_color=INPUT_BORDER, focus_border_color=FOCUS_BORDER,
         border_radius=4,
@@ -239,7 +240,7 @@ def _make_noise_widget(field_type: str, config_value, arg0, arg1, arg2):
         return _numeric(val, min_value=arg0, max_value=arg1, step=arg2)
     elif field_type == 'float':
         val = float(config_value) if config_value is not None else float(arg0)
-        return _numeric(val, min_value=arg0, max_value=arg1, step=arg2)
+        return _numeric(val, min_value=arg0, max_value=arg1, step=arg2, decimals=5)
     elif field_type == 'dropdown':
         options = arg0  # arg0 is the list
         if isinstance(config_value, int):
@@ -298,6 +299,8 @@ class WorldEditorScene(BaseScene):
         self._world = None               # VGWorld instance (or None on failure)
         self._noise_configs: Dict[str, Dict[str, Any]] = {}   # from config.json
         self._noise_names: List[str] = []
+        self._param_configs: Dict[str, Dict[str, Any]] = {}   # from config.json ["parameters"]
+        self._param_config_names: List[str] = []
 
         # UI
         self._ui: Optional[UIManager] = None
@@ -311,6 +314,9 @@ class WorldEditorScene(BaseScene):
         # Params tab controls
         self._param_controls: Dict[str, NumericInput] = {}
         self._param_status: Optional[Label] = None
+        self._active_param_cfg_idx: int = 0
+        self._param_cfg_dropdown: Optional[Dropdown] = None
+        self._param_cfg_name_input: Optional[TextInput] = None
 
         # Noises tab state
         self._noise_dropdown: Optional[Dropdown] = None
@@ -386,12 +392,14 @@ class WorldEditorScene(BaseScene):
     # ── Data loading ──────────────────────────────────────────────────────────
 
     def _load_data(self) -> None:
-        # Noise configs from config.json
+        # Noise + parameter configs from config.json
         try:
             with open(CONFIG_JSON, "r", encoding="utf-8") as f:
                 data = json.load(f)
             self._noise_configs = data.get("noise", {})
             self._noise_names = list(self._noise_configs.keys())
+            self._param_configs = data.get("parameters", {})
+            self._param_config_names = list(self._param_configs.keys())
         except Exception as e:
             print(f"[WorldEditor] config.json load error: {e}")
 
@@ -500,26 +508,37 @@ class WorldEditorScene(BaseScene):
         vbox.add_child(_title("── Parámetros del Mundo ──"))
         vbox.add_child(_spacer())
 
-        # Load current values
-        raw_params: Dict[str, Any] = {}
-        if self._world:
-            _, WPN, *_ = _get_world_classes()
-            for key, (label, is_int, mn, mx, step) in _PARAM_CONFIG.items():
-                try:
-                    enum_key = WPN[key]
-                    raw_params[key] = self._world.parameters.get(enum_key, 0)
-                except Exception:
-                    pass
-        else:
-            try:
-                with open(CONFIG_TOML, "rb") as f:
-                    toml_data = tomllib.load(f)
-                for k, v in toml_data.get("default_parameters", {}).items():
-                    # map PascalCase TOML key → snake_case _PARAM_CONFIG key
-                    snake = _pascal_to_snake(k)
-                    raw_params[snake] = v
-            except Exception:
-                pass
+        # Dropdown to select the active parameter config
+        if self._param_config_names:
+            sel_row = HBox(width=cw, height=30, spacing=8, align='center', auto_size=False)
+            sel_lbl = _lbl("Config:", font_size=15)
+            sel_lbl.width = 52
+            sel_row.add_child(sel_lbl)
+            self._param_cfg_dropdown = _dropdown_small(
+                self._param_config_names,
+                self._active_param_cfg_idx,
+                w=max(60, cw - 60),
+            )
+            self._param_cfg_dropdown.on_change(self._on_param_cfg_change)
+            sel_row.add_child(self._param_cfg_dropdown)
+            vbox.add_child(sel_row)
+
+            # Name row: editable config name + save button
+            name_row = HBox(width=cw, height=30, spacing=6, align='center', auto_size=False)
+            name_lbl = _lbl("Nombre:", font_size=15)
+            name_lbl.width = 68
+            name_row.add_child(name_lbl)
+            active_name = self._param_config_names[self._active_param_cfg_idx]
+            self._param_cfg_name_input = _text_input(text=active_name, w=max(60, cw - 160))
+            name_row.add_child(self._param_cfg_name_input)
+            btn_save = _btn("Guardar", BTN_APL_BG, BTN_APL_HV, w=80, h=26)
+            btn_save.on_click(lambda _: self._save_param_config())
+            name_row.add_child(btn_save)
+            vbox.add_child(name_row)
+            vbox.add_child(_spacer())
+
+        # Load current values from the active JSON config (fallback: world, then TOML)
+        raw_params = self._get_active_param_values()
 
         self._param_controls = {}
         for key, (label, is_int, mn, mx, step) in _PARAM_CONFIG.items():
@@ -543,6 +562,23 @@ class WorldEditorScene(BaseScene):
 
         return vbox
 
+    def _get_active_param_values(self) -> Dict[str, Any]:
+        """Return the param dict for the currently selected config."""
+        if self._param_config_names:
+            name = self._param_config_names[self._active_param_cfg_idx]
+            return dict(self._param_configs.get(name, {}))
+        # fallback: read from running world
+        if self._world:
+            _, WPN, *_ = _get_world_classes()
+            result = {}
+            for key in _PARAM_CONFIG:
+                try:
+                    result[key] = self._world.parameters.get(WPN[key], 0)
+                except Exception:
+                    pass
+            return result
+        return {}
+
     def _apply_params(self) -> None:
         if self._world is None:
             self._set_status("VGWorld no disponible")
@@ -562,6 +598,57 @@ class WorldEditorScene(BaseScene):
                 self._param_status.text = "✓ Cambios aplicados"
         except Exception as e:
             self._set_status(f"Error: {e}")
+
+    def _on_param_cfg_change(self, idx: int, _text: str = "") -> None:
+        self._active_param_cfg_idx = idx
+        if self._param_cfg_name_input and idx < len(self._param_config_names):
+            self._param_cfg_name_input.text = self._param_config_names[idx]
+        # Update control values in-place (no rebuild needed)
+        raw = self._get_active_param_values()
+        for key, inp in self._param_controls.items():
+            _, is_int, mn, *_ = _PARAM_CONFIG[key]
+            val = raw.get(key, mn)
+            inp.text = str(int(val) if is_int else val)
+
+    def _save_param_config(self) -> None:
+        if self._param_cfg_name_input is None:
+            return
+        save_name = self._param_cfg_name_input.text.strip()
+        if not save_name:
+            self._set_status("El nombre no puede estar vacío")
+            return
+        cfg = {}
+        for key, inp in self._param_controls.items():
+            _, is_int, *_ = _PARAM_CONFIG[key]
+            try:
+                cfg[key] = int(float(inp.text)) if is_int else float(inp.text)
+            except ValueError:
+                pass
+        try:
+            with open(CONFIG_JSON, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if "parameters" not in data:
+                data["parameters"] = {}
+            is_new = save_name not in data["parameters"]
+            data["parameters"][save_name] = cfg
+            with open(CONFIG_JSON, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+            self._param_configs[save_name] = cfg
+            if is_new:
+                self._param_config_names.append(save_name)
+                self._active_param_cfg_idx = len(self._param_config_names) - 1
+                # Rebuild params tab to reflect the new dropdown entry
+                self._tab_vboxes[self.TAB_PARAMS] = None
+                self._param_cfg_dropdown = None
+                self._param_cfg_name_input = None
+                if self._active_tab == self.TAB_PARAMS:
+                    self._show_tab(self.TAB_PARAMS)
+            self._set_status(f"{'Creada' if is_new else 'Actualizada'}: {save_name}")
+            if self._param_status:
+                self._param_status.text = f"✓ {'Creada' if is_new else 'Actualizada'}: {save_name}"
+        except Exception as e:
+            self._set_status(f"Error al guardar: {e}")
+            print(f"[WorldEditor] _save_param_config: {e}")
 
     # ═══════════════════════ TAB: NOISES ══════════════════════════════════════
 
@@ -1065,6 +1152,8 @@ class WorldEditorScene(BaseScene):
         self._noise_dropdown = None
         self._noise_inner_scroll = None
         self._noise_name_input = None
+        self._param_cfg_dropdown = None
+        self._param_cfg_name_input = None
         screen = pygame.display.get_surface()
         sw, sh = screen.get_size()
         self._ui.clear()
