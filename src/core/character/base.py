@@ -1,14 +1,10 @@
-from pathlib import Path
 from typing import Optional, Tuple
-
-try:
-    import pygame
-    HAS_PYGAME = True
-except ImportError:
-    HAS_PYGAME = False
+import pygame
 
 from core.base.game_object import GameObject
 from core.character.movement_component import MovementComponent
+from core.character.shape import CharacterShape, RectShape
+from core.color.color import Colors
 
 GridPos = Tuple[int, int]
 
@@ -22,6 +18,10 @@ class BaseCharacter(GameObject):
     pathfinding. Subclasses should override _cell_is_walkable() to define
     their own walkability rules; the world reference is passed in so that
     the character can query it without coupling to the tilemap directly.
+
+    Visual representation is handled by a CharacterShape instance that
+    draws the character using pygame primitives. Replace self.shape at
+    any time to change the character's appearance.
     """
 
     def __init__(
@@ -32,21 +32,20 @@ class BaseCharacter(GameObject):
         world=None,
         grid_pos: GridPos = (0, 0),
         move_speed: float = 4.0,
-        sprite_path: Optional[str | Path] = None,
+        shape: Optional[CharacterShape] = None,
     ):
         """
         Initialize a character.
 
         Args:
-            x:           Initial pixel x position.
-            y:           Initial pixel y position.
-            name:        Optional name for the character.
-            world:       VGWorld instance used for walkability queries.
-            grid_pos:    Initial position in grid (cell) coordinates.
-            move_speed:  Grid-based movement speed in cells per second.
-            sprite_path: Path to the .png sprite file. When pygame is
-                         available the image is loaded immediately;
-                         otherwise the attribute is set to None.
+            x:          Initial pixel x position.
+            y:          Initial pixel y position.
+            name:       Optional name for the character.
+            world:      VGWorld instance used for walkability queries.
+            grid_pos:   Initial position in grid (cell) coordinates.
+            move_speed: Grid-based movement speed in cells per second.
+            shape:      Visual representation built from pygame primitives.
+                        Defaults to a 32×32 white RectShape if None.
         """
         super().__init__(x, y, name)
 
@@ -78,41 +77,16 @@ class BaseCharacter(GameObject):
             )
 
         # ------------------------------------------------------------------
-        # Sprite
+        # Visual shape
         # ------------------------------------------------------------------
-        # Holds the loaded pygame.Surface for the character's static sprite.
-        # Will be replaced by an animation system in the future.
-        self.sprite: Optional["pygame.Surface"] = None
-        if sprite_path is not None:
-            self.load_sprite(sprite_path)
-
-    # ------------------------------------------------------------------
-    # Sprite
-    # ------------------------------------------------------------------
-
-    def load_sprite(self, sprite_path: str | Path) -> None:
-        """
-        Load a static sprite from a .png file.
-
-        Requires pygame to be initialised before calling this method
-        (pygame.display must have been set up so that convert_alpha()
-        works correctly).
-
-        Args:
-            sprite_path: Path to the .png image file.
-
-        Raises:
-            RuntimeError: If pygame is not available.
-            FileNotFoundError: If the file does not exist.
-        """
-        if not HAS_PYGAME:
-            raise RuntimeError("pygame is required to load sprites.")
-
-        path = Path(sprite_path)
-        if not path.exists():
-            raise FileNotFoundError(f"Sprite file not found: {path}")
-
-        self.sprite = pygame.image.load(str(path)).convert_alpha()
+        # Holds the primitive-based visual of this character.
+        # Replace or mutate self.shape at any time to change appearance.
+        self.shape: CharacterShape = shape if shape is not None else RectShape(
+            width=32,
+            height=32,
+            color=Colors.WHITE,
+            border_width=1,
+        )
 
     # ------------------------------------------------------------------
     # Grid position
@@ -121,7 +95,7 @@ class BaseCharacter(GameObject):
     @property
     def grid_position(self) -> GridPos:
         """Current position in grid (cell) coordinates."""
-        return (self.grid_x, self.grid_y)
+        return self.grid_x, self.grid_y
 
     # ------------------------------------------------------------------
     # Walkability — override in subclasses
@@ -192,7 +166,7 @@ class BaseCharacter(GameObject):
         Update character state.
 
         Args:
-            delta_time: Time elapsed since last frame in seconds
+            delta_time: Time elapsed since last frame in seconds.
         """
         # Free (pixel-space) movement
         if self.velocity_x != 0 or self.velocity_y != 0:
@@ -207,6 +181,10 @@ class BaseCharacter(GameObject):
             if self._movement.is_moving:
                 self.is_moving = True
 
+    # ------------------------------------------------------------------
+    # Render
+    # ------------------------------------------------------------------
+
     def render(self, surface: "pygame.Surface") -> None:
         """
         Draw the character on a pygame surface.
@@ -218,16 +196,18 @@ class BaseCharacter(GameObject):
         Args:
             surface: The pygame.Surface to draw onto.
         """
-        if not HAS_PYGAME:
-            return
         self.shape.draw(surface, self.x, self.y)
+
+    # ------------------------------------------------------------------
+    # Health
+    # ------------------------------------------------------------------
 
     def take_damage(self, amount: float):
         """
         Apply damage to the character.
 
         Args:
-            amount: Damage amount
+            amount: Damage amount.
         """
         self.health = max(0.0, self.health - amount)
         if self.health <= 0:
@@ -238,22 +218,25 @@ class BaseCharacter(GameObject):
         Heal the character.
 
         Args:
-            amount: Heal amount
+            amount: Heal amount.
         """
         self.health = min(self.max_health, self.health + amount)
+
+    # ------------------------------------------------------------------
+    # Free movement
+    # ------------------------------------------------------------------
 
     def move(self, direction_x: float, direction_y: float):
         """
         Set movement velocity based on direction.
 
         Args:
-            direction_x: Horizontal direction (-1 to 1)
-            direction_y: Vertical direction (-1 to 1)
+            direction_x: Horizontal direction (-1 to 1).
+            direction_y: Vertical direction (-1 to 1).
         """
         self.velocity_x = direction_x * self.speed
         self.velocity_y = direction_y * self.speed
 
-        # Update facing direction
         if direction_x > 0:
             self.facing_direction = "right"
         elif direction_x < 0:
@@ -264,10 +247,14 @@ class BaseCharacter(GameObject):
             self.facing_direction = "up"
 
     def stop(self):
-        """Stop character movement."""
+        """Stop free movement."""
         self.velocity_x = 0.0
         self.velocity_y = 0.0
         self.is_moving = False
+
+    # ------------------------------------------------------------------
+    # Lifecycle
+    # ------------------------------------------------------------------
 
     def on_death(self):
         """

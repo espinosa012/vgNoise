@@ -8,10 +8,12 @@ try:
     import pygame
     HAS_PYGAME = True
 except ImportError:
+    pygame = None  # type: ignore[assignment]
     HAS_PYGAME = False
 
 from .mapcell import MapCell
 from .tileset import TileSet
+from core.camera.camera import Camera
 
 
 class TileMapChunk:
@@ -547,13 +549,49 @@ class TileMap:
         return self.width * self.tile_width, self.height * self.tile_height
 
     # -------------------------------------------------------------------------
+    # Coordinate conversion
+    # -------------------------------------------------------------------------
+
+    def tile_to_pixel(self, tile_x: int, tile_y: int) -> Tuple[int, int]:
+        """
+        Convert grid (tile) coordinates to global pixel coordinates.
+
+        The returned point corresponds to the top-left corner of the tile.
+
+        Args:
+            tile_x: X coordinate in tile units.
+            tile_y: Y coordinate in tile units.
+
+        Returns:
+            Tuple (pixel_x, pixel_y) of the top-left corner of the tile.
+        """
+        return tile_x * self.tile_width, tile_y * self.tile_height
+
+    def pixel_to_tile(self, pixel_x: int, pixel_y: int) -> Tuple[int, int]:
+        """
+        Convert global pixel coordinates to grid (tile) coordinates.
+
+        Uses integer division, so any pixel inside a tile maps to that
+        tile's grid position. The tile does not need to have any cell
+        defined at that position.
+
+        Args:
+            pixel_x: X coordinate in pixels.
+            pixel_y: Y coordinate in pixels.
+
+        Returns:
+            Tuple (tile_x, tile_y) of the grid cell that contains the point.
+        """
+        return pixel_x // self.tile_width, pixel_y // self.tile_height
+
+    # -------------------------------------------------------------------------
     # Rendering helpers
     # -------------------------------------------------------------------------
 
     def draw(
         self,
         surface: 'pygame.Surface',
-        camera: 'Camera',
+        camera: Camera,
         tileset: Optional[TileSet] = None,
         layer: int = 0,
     ) -> None:
