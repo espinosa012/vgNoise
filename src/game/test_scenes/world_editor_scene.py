@@ -36,8 +36,11 @@ from src.core.tilemap.tileset import TileSet
 from src.core.camera.camera import Camera
 from src.ui import (
     UIManager, Label, Button, Checkbox, Dropdown,
-    VBox, HBox, ScrollView, NumericInput, TabBar, TextInput,
+    VBox, HBox, ScrollView, NumericInput, TabBar, TextInput, Panel,
 )
+from core.character.base import BaseCharacter
+from core.character.shape import RectShape
+from core.color.color import Color
 from .base_scene import BaseScene
 
 # ── Lazy imports ─────────────────────────────────────────────────────────────
@@ -352,6 +355,10 @@ class WorldEditorScene(BaseScene):
         # General status
         self._status_bar: Optional[Label] = None
 
+        # Characters
+        self._characters: List[BaseCharacter] = []
+        self._char_panel: Optional[Panel] = None
+
         # Divider
         self._panel_width: int = PANEL_WIDTH
         self._dragging_divider: bool = False
@@ -388,6 +395,7 @@ class WorldEditorScene(BaseScene):
         if self._camera:
             self._camera.width = sw
             self._camera.height = sh
+        self._update_char_panel_position(sw)
 
     # ── Data loading ──────────────────────────────────────────────────────────
 
@@ -470,6 +478,9 @@ class WorldEditorScene(BaseScene):
         self._status_bar.x = self._panel_width + 8
         self._status_bar.y = sh - 20
         self._ui.add(self._status_bar)
+
+        # Character panel (top-right overlay on the tilemap area)
+        self._build_char_panel(sw, sh)
 
         # Show initial tab
         self._show_tab(self._active_tab)
@@ -990,6 +1001,58 @@ class WorldEditorScene(BaseScene):
         if self._status_bar:
             self._status_bar.text = text
 
+    # ── Character panel ───────────────────────────────────────────────────────
+
+    _CHAR_PANEL_W = 160
+    _CHAR_PANEL_H = 72
+
+    def _build_char_panel(self, sw: int, sh: int) -> None:
+        x = sw - self._CHAR_PANEL_W - 8
+        self._char_panel = Panel(
+            x=x, y=8,
+            width=self._CHAR_PANEL_W, height=self._CHAR_PANEL_H,
+            bg_color=(28, 28, 48, 210),
+            border_color=(80, 80, 120),
+            border_width=1,
+            border_radius=6,
+            padding=8,
+        )
+        title = Label(text="Personajes", font_size=15, color=TITLE_COLOR, auto_size=True)
+        self._char_panel.add_child(title)
+
+        btn_add = _btn("Add character", BTN_GEN_BG, BTN_GEN_HV, w=self._CHAR_PANEL_W - 16, h=26)
+        btn_add.y = 28
+        btn_add.on_click(lambda _: self._add_character())
+        self._char_panel.add_child(btn_add)
+
+        self._ui.add(self._char_panel)
+
+    def _update_char_panel_position(self, sw: int) -> None:
+        if self._char_panel:
+            self._char_panel.x = sw - self._CHAR_PANEL_W - 8
+
+    def _add_character(self) -> None:
+        """Spawn a character at the center of the current viewport in world coords."""
+        if self._camera is None:
+            self._set_status("Carga un tilemap primero")
+            return
+        cam = self._camera
+        zoom = cam.zoom
+        screen = pygame.display.get_surface()
+        sw, sh = screen.get_size()
+        vp_cx = (sw - self._panel_width) / 2
+        vp_cy = sh / 2
+        wx = cam.x + vp_cx / zoom
+        wy = cam.y + vp_cy / zoom
+        char = BaseCharacter(x=wx, y=wy, name=f"char_{len(self._characters)}")
+        char.shape = RectShape(
+            width=TILE_SIZE * 2, height=TILE_SIZE * 2,
+            color=Color(220, 80, 80),
+            border_width=1,
+        )
+        self._characters.append(char)
+        self._set_status(f"Personaje añadido en ({int(wx)}, {int(wy)})")
+
     # ── Events ────────────────────────────────────────────────────────────────
 
     def handle_event(self, event: pygame.event.Event) -> None:
@@ -1035,6 +1098,9 @@ class WorldEditorScene(BaseScene):
         if self._ui:
             self._ui.update(dt)
 
+        for char in self._characters:
+            char.update(dt)
+
         # Cursor
         mx = pygame.mouse.get_pos()[0]
         if self._dragging_divider or abs(mx - self._panel_width) <= _DIVIDER_HIT_W // 2:
@@ -1058,7 +1124,7 @@ class WorldEditorScene(BaseScene):
         zoom = self._camera.zoom
         world_w = self._map_w * TILE_SIZE
         world_h = self._map_h * TILE_SIZE
-        vp_w = self._camera.width / zoom
+        vp_w = (self._camera.width - self._panel_width) / zoom
         vp_h = self._camera.height / zoom
         self._camera.set_bounds(
             min_x=0, max_x=max(0.0, world_w - vp_w),
@@ -1088,6 +1154,7 @@ class WorldEditorScene(BaseScene):
             sub = screen.subsurface(clip)
             self._tilemap.draw(sub, self._camera, self._tileset)
             screen.set_clip(old_clip)
+            self._draw_characters(screen)
             self._draw_hud(screen)
         else:
             # Placeholder when nothing is generated
@@ -1109,6 +1176,25 @@ class WorldEditorScene(BaseScene):
             screen, div_color,
             pygame.Rect(self._panel_width - _DIVIDER_W // 2, 0, _DIVIDER_W, sh),
         )
+
+    def _draw_characters(self, screen: pygame.Surface) -> None:
+        if not self._characters or not self._camera:
+            return
+        cam = self._camera
+        zoom = cam.zoom
+        pw = self._panel_width
+        sw = screen.get_width()
+        clip = pygame.Rect(pw, 0, sw - pw, screen.get_height())
+        old_clip = screen.get_clip()
+        screen.set_clip(clip)
+        for char in self._characters:
+            sx = (char.x - cam.x) * zoom + pw
+            sy = (char.y - cam.y) * zoom
+            size = max(2, int(char.shape.width * zoom))
+            rect = pygame.Rect(int(sx), int(sy), size, size)
+            if clip.colliderect(rect):
+                char.shape.draw(screen, sx, sy)
+        screen.set_clip(old_clip)
 
     def _draw_hud(self, screen: pygame.Surface) -> None:
         font = pygame.font.Font(None, 18)
