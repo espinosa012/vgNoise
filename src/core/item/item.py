@@ -12,6 +12,7 @@ class ItemType(Enum):
     ARMOR      = auto()
     ACCESSORY  = auto()
     CONSUMABLE = auto()
+    FURNITURE  = auto()
 
 class ItemState(Enum):
     ON_GROUND    = auto()
@@ -24,6 +25,8 @@ class BaseItem(GameObject):
 
     ITEM_TYPE:  list[ItemType] = [ItemType.GENERIC]
     MAX_HEALTH: float          = 100.0
+    STACKABLE:  bool           = False   # True → varias unidades en un slot
+    MAX_STACK:  int            = 1       # ignorado si STACKABLE es False
 
     def __init__(
         self,
@@ -40,6 +43,7 @@ class BaseItem(GameObject):
         self.weight:      float             = weight
         self.state:       ItemState         = ItemState.ON_GROUND
         self.owner:       Optional[object]  = None
+        self.stack_count: int               = 1
 
         self.health: EntityHealth = EntityHealth(
             maximum=self.MAX_HEALTH,
@@ -147,7 +151,8 @@ class BaseItem(GameObject):
 
     def __repr__(self) -> str:
         types = "|".join(t.name for t in self.item_type)
+        stack = f" x{self.stack_count}" if self.STACKABLE else ""
         return (
             f"<{self.__class__.__name__} {self.name!r} "
-            f"[{types}] {self.state.name}>"
+            f"[{types}]{stack} {self.state.name}>"
         )

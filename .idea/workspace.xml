@@ -4,12 +4,17 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="1b3760f7-cbcd-414c-ae5d-16d36f91ad5c" name="Changes" comment="item and health">
-      <change afterPath="$PROJECT_DIR$/src/game/character/character.py" afterDir="false" />
+    <list default="true" id="1b3760f7-cbcd-414c-ae5d-16d36f91ad5c" name="Changes" comment="game character.py">
+      <change afterPath="$PROJECT_DIR$/_test_inventory.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/core/item/inventory.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/core/world_data/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/core/world_data/material.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/game/game_objects/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/game/game_objects/chest.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/vgworld/world/biome/soil.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/core/item/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/item/__init__.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/core/item/item.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/item/item.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/game/character/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/game/character/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/game/test_scenes/character_scene.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/game/test_scenes/character_scene.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -154,7 +159,7 @@
       <workItem from="1772281256831" duration="71000" />
       <workItem from="1772281338859" duration="228000" />
       <workItem from="1772281831440" duration="51017000" />
-      <workItem from="1772477561724" duration="3972000" />
+      <workItem from="1772477561724" duration="5760000" />
     </task>
     <task id="LOCAL-00001" summary="fisrt commit">
       <option name="closed" value="true" />
@@ -524,14 +529,21 @@
       <option name="project" value="LOCAL" />
       <updated>1772480869210</updated>
     </task>
-    <option name="localTasksCounter" value="47" />
+    <task id="LOCAL-00047" summary="game character.py">
+      <option name="closed" value="true" />
+      <created>1772481646853</created>
+      <option name="number" value="00047" />
+      <option name="presentableId" value="LOCAL-00047" />
+      <option name="project" value="LOCAL" />
+      <updated>1772481646853</updated>
+    </task>
+    <option name="localTasksCounter" value="48" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="removing tile" />
     <MESSAGE value="handling transparences" />
     <MESSAGE value="tilemaplayer entity" />
     <MESSAGE value="map cell" />
@@ -556,7 +568,8 @@
     <MESSAGE value="spline points and more" />
     <MESSAGE value="character and pathfinding" />
     <MESSAGE value="item and health" />
-    <option name="LAST_COMMIT_MESSAGE" value="item and health" />
+    <MESSAGE value="game character.py" />
+    <option name="LAST_COMMIT_MESSAGE" value="game character.py" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -570,7 +583,7 @@
     </breakpoint-manager>
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/vgEngine$pygame_test.coverage" NAME="pygame_test Coverage Results" MODIFIED="1772481621016" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src/game" />
+    <SUITE FILE_PATH="coverage/vgEngine$pygame_test.coverage" NAME="pygame_test Coverage Results" MODIFIED="1772481922123" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src/game" />
     <SUITE FILE_PATH="coverage/vgNoise$run_tilemap_editor.coverage" NAME="run_tilemap_editor Coverage Results" MODIFIED="1771093416577" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/ui_tools/vgNoiseViewer" />
     <SUITE FILE_PATH="coverage/vgNoise$app.coverage" NAME="app Coverage Results" MODIFIED="1771083678360" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/ui_tools/vgNoiseViewer/tilemap_editor" />
     <SUITE FILE_PATH="coverage/vgEngine$demo_ui_framework.coverage" NAME="demo_ui_framework Coverage Results" MODIFIED="1772209068041" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
