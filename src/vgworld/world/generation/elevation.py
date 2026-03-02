@@ -8,12 +8,19 @@ def run_elevation_generation_pipeline(noise: dict[WorldNoiseName, NoiseGenerator
                                       parameters: dict[WorldParameterName, float | int],
                                       init_x: int, final_x: int, init_y: int, final_y: int) -> None:
     # noise_matrix
-    cont: Matrix2D = Matrix2D.from_noise(noise[WorldNoiseName.continentality],
-                                         init_x, final_x, init_y, final_y)
-    pv: Matrix2D = Matrix2D.from_noise(noise[WorldNoiseName.peaks_and_valleys],
-                                       init_x, final_x, init_y, final_y)
+    cont: Matrix2D = (Matrix2D.from_noise(noise[WorldNoiseName.continentality], init_x, final_x, init_y, final_y)
+                      * parameters[WorldParameterName.sea_scale])
 
-    matrix[WorldMatrixName.elevation] = ((cont + (pv * parameters[WorldParameterName.peaks_and_valleys_scale]))
+    pv: Matrix2D = (Matrix2D.from_noise(noise[WorldNoiseName.peaks_and_valleys], init_x, final_x, init_y, final_y) *
+                    parameters[WorldParameterName.peaks_and_valleys_scale])
+
+    elevation: Matrix2D = pv * Matrix2D.from_noise(noise[WorldNoiseName.base_elevation], init_x, final_x, init_y, final_y)
+    erosion: Matrix2D = pv * Matrix2D.from_noise(noise[WorldNoiseName.volcanic_noise], init_x, final_x, init_y, final_y)
+
+    #matrix[WorldMatrixName.elevation] = ((cont - erosion)
+    matrix[WorldMatrixName.elevation] = (cont
+    #matrix[WorldMatrixName.elevation] = (elevation
+    #matrix[WorldMatrixName.elevation] = (erosion
                                          .clamp_values(parameters[WorldParameterName.min_continental_height], 1.0))
 
 

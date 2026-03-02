@@ -6,9 +6,9 @@
       "world_size_y": 1680,
       "equator_latitude": 0,
       "min_continental_height": 0.023,
-      "peaks_and_valleys_scale": 0.56,
+      "peaks_and_valleys_scale": 0.7236,
       "continental_scale": 1.22,
-      "sea_scale": 1.18,
+      "sea_scale": 1.0,
       "sea_elevation_threshold": 0.042,
       "island_scale": 0.81,
       "volcanic_island_scale": 0.81,
@@ -44,7 +44,7 @@
     "continentality": {
       "seed": 23546900,
       "noise_type": 0,
-      "frequency": 0.00175,
+      "frequency": 0.00126,
       "offset_x": 0,
       "offset_y": 0,
       "fractal_type": 1,
@@ -66,9 +66,9 @@
       "domain_warp_fractal_octaves": 5
     },
     "peaks_and_valleys": {
-      "seed": 252910699,
+      "seed": 2330579,
       "noise_type": 5,
-      "frequency": 0.016,
+      "frequency": 0.0037,
       "offset_x": 0,
       "offset_y": 0,
       "fractal_type": 3,

@@ -2,7 +2,6 @@ import json
 from enum import Enum
 from pathlib import Path
 
-import tomllib
 
 from vgworld.world.misc.enums import WorldParameterName, WorldMatrixName, WorldNoiseName, WorldGenerationStage
 from virigir_math_utilities import Matrix2D
@@ -36,10 +35,12 @@ class VGWorld:
 
     def load_parameters_from_toml(self, config_name: str) -> None:
         self.parameters = {}
-        with open(DEFAULT_CONFIG_PATH, "rb") as f:
-            raw = tomllib.load(f)
+        with open(DEFAULT_NOISE_CONFIG_PATH, "r", encoding="utf-8") as f:
+            raw = json.load(f)
         self.parameters = {
-            WorldParameterName(k): v for k, v in raw[config_name].items()
+            WorldParameterName[k]: v
+            for k, v in raw.get("parameters", {}).get(config_name, {}).items()
+            if k in WorldParameterName.__members__
         }
 
     def initialize_matrix(self):

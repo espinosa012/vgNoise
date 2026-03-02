@@ -94,7 +94,7 @@ SCROLLBAR_W    = 12
 ROW_LABEL_W    = 152
 ROW_SPACING    = 8
 GRAYSCALE_STEPS = 32
-TILE_SIZE       = 4
+TILE_SIZE       = 16
 CAMERA_SPEED    = 500
 ZOOM_SPEED      = 1.5
 _PANEL_MIN_W    = 180
@@ -1032,21 +1032,18 @@ class WorldEditorScene(BaseScene):
             self._char_panel.x = sw - self._CHAR_PANEL_W - 8
 
     def _add_character(self) -> None:
-        """Spawn a character at the center of the current viewport in world coords."""
-        if self._camera is None:
+        """Spawn a character at a random position within the map."""
+        import random
+        if self._map_w == 0 or self._map_h == 0:
             self._set_status("Carga un tilemap primero")
             return
-        cam = self._camera
-        zoom = cam.zoom
-        screen = pygame.display.get_surface()
-        sw, sh = screen.get_size()
-        vp_cx = (sw - self._panel_width) / 2
-        vp_cy = sh / 2
-        wx = cam.x + vp_cx / zoom
-        wy = cam.y + vp_cy / zoom
+        wx = random.uniform(0, self._map_w * TILE_SIZE)
+        wy = random.uniform(0, self._map_h * TILE_SIZE)
+        import random
+        char_h = random.randint(16, 64)
         char = BaseCharacter(x=wx, y=wy, name=f"char_{len(self._characters)}")
         char.shape = RectShape(
-            width=TILE_SIZE * 2, height=TILE_SIZE * 2,
+            width=16, height=char_h,
             color=Color(220, 80, 80),
             border_width=1,
         )
@@ -1124,8 +1121,16 @@ class WorldEditorScene(BaseScene):
         zoom = self._camera.zoom
         world_w = self._map_w * TILE_SIZE
         world_h = self._map_h * TILE_SIZE
-        vp_w = (self._camera.width - self._panel_width) / zoom
-        vp_h = self._camera.height / zoom
+        viewport_px_w = self._camera.width - self._panel_width
+        viewport_px_h = self._camera.height
+        # Allow zooming out to see the full map with some extra margin
+        if world_w > 0 and world_h > 0:
+            self._camera.min_zoom = min(
+                viewport_px_w / world_w,
+                viewport_px_h / world_h,
+            ) * 0.25
+        vp_w = viewport_px_w / zoom
+        vp_h = viewport_px_h / zoom
         self._camera.set_bounds(
             min_x=0, max_x=max(0.0, world_w - vp_w),
             min_y=0, max_y=max(0.0, world_h - vp_h),
@@ -1188,12 +1193,15 @@ class WorldEditorScene(BaseScene):
         old_clip = screen.get_clip()
         screen.set_clip(clip)
         for char in self._characters:
-            sx = (char.x - cam.x) * zoom + pw
-            sy = (char.y - cam.y) * zoom
-            size = max(2, int(char.shape.width * zoom))
-            rect = pygame.Rect(int(sx), int(sy), size, size)
+            sx = int((char.x - cam.x) * zoom + pw)
+            sy = int((char.y - cam.y) * zoom)
+            sw = max(1, int(char.shape.width * zoom))
+            sh = max(1, int(char.shape.height * zoom))
+            rect = pygame.Rect(sx, sy, sw, sh)
             if clip.colliderect(rect):
-                char.shape.draw(screen, sx, sy)
+                pygame.draw.rect(screen, char.shape.color.to_rgba(), rect)
+                if char.shape.border_width > 0 and char.shape.border_color:
+                    pygame.draw.rect(screen, char.shape.border_color.to_rgba(), rect, char.shape.border_width)
         screen.set_clip(old_clip)
 
     def _draw_hud(self, screen: pygame.Surface) -> None:
