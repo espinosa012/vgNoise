@@ -2,13 +2,14 @@ from enum import Enum, auto
 from typing import Optional
 
 from core.base.game_object import GameObject
-from core.health.entity_health import EntityHealth
+from core.entity_stats.entity_health import EntityHealth
 
 
 class ItemType(Enum):
     GENERIC    = auto()
     TOOL       = auto()
     WEAPON     = auto()
+    AMMUNITION = auto()
     ARMOR      = auto()
     ACCESSORY  = auto()
     CONSUMABLE = auto()
@@ -23,10 +24,11 @@ class ItemState(Enum):
 class BaseItem(GameObject):
     """Clase base para todos los ítems del juego."""
 
-    ITEM_TYPE:  list[ItemType] = [ItemType.GENERIC]
-    MAX_HEALTH: float          = 100.0
-    STACKABLE:  bool           = False   # True → varias unidades en un slot
-    MAX_STACK:  int            = 1       # ignorado si STACKABLE es False
+    ITEM_TYPE:          list[ItemType] = [ItemType.GENERIC]
+    MAX_HEALTH:         float          = 100.0
+    STACKABLE:          bool           = False   # True → varias unidades en un slot
+    MAX_STACK:          int            = 1       # ignorado si STACKABLE es False
+    INVENTORY_STORABLE: bool           = True    # False → no puede guardarse en un inventario (hoguera, estatua, etc.)
 
     def __init__(
         self,
@@ -37,17 +39,46 @@ class BaseItem(GameObject):
     ) -> None:
         super().__init__(name=name)
 
-        self.item_type:   list[ItemType]    = self.ITEM_TYPE
-        self.description: str               = description
-        self.value:       int               = value
-        self.weight:      float             = weight
-        self.state:       ItemState         = ItemState.ON_GROUND
-        self.owner:       Optional[object]  = None
-        self.stack_count: int               = 1
+        self.item_type:          list[ItemType]    = self.ITEM_TYPE
+        self.description:        str               = description
+        self.value:              int               = value
+        self.weight:             float             = weight
+        self.state:              ItemState         = ItemState.ON_GROUND
+        self.owner:              Optional[object]  = None
+        self.stack_count:        int               = 1
+        self.inventory_storable: bool              = self.INVENTORY_STORABLE
 
         self.health: EntityHealth = EntityHealth(
             maximum=self.MAX_HEALTH,
             on_death=self.on_broken,
+        )
+
+    # ------------------------------------------------------------------
+    # Apilado
+    # ------------------------------------------------------------------
+
+    @property
+    def is_stackable(self) -> bool:
+        """True si este ítem puede apilarse en un slot de inventario."""
+        return self.STACKABLE
+
+    @property
+    def stack_space(self) -> int:
+        """Unidades adicionales que caben en este slot (0 si está lleno o no es apilable)."""
+        if not self.STACKABLE:
+            return 0
+        return self.MAX_STACK - self.stack_count
+
+    def can_stack_with(self, other: "BaseItem") -> bool:
+        """
+        True si *other* puede apilarse en este slot.
+
+        Condiciones: mismo tipo concreto, ambos apilables y slot con espacio.
+        """
+        return (
+            self.STACKABLE
+            and type(self) is type(other)
+            and self.stack_space > 0
         )
 
     # ------------------------------------------------------------------

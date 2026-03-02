@@ -112,6 +112,8 @@ class Inventory:
         Primero intenta apilarlo en un slot existente compatible; si no es
         posible, verifica que haya un slot libre.
         """
+        if not item.inventory_storable:
+            return False
         if not self.accepts_type(item):
             return False
         if (self.max_weight is not None

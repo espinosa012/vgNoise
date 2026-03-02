@@ -1,20 +1,19 @@
 from typing import Callable, Optional
 
 
-class EntityHealth:
+class EntityStat:
     """
-    Modela el estado de salud de cualquier entidad del juego
-    (personaje, ítem, estructura, etc.).
+    Clase base para estadísticas de entidad con valor numérico acotado
+    (salud, hambre, resistencia, etc.).
 
     Soporta regeneración o decremento automático por frame mediante
     ``regen_per_second``: un valor positivo regenera, uno negativo drena.
 
     Attributes:
-        current:          Valor actual de salud.
-        maximum:          Valor máximo de salud.
-        regen_per_second: Cambio automático de salud por segundo (puede ser
-                          negativo para veneno/fuego, 0 para sin regen).
-        on_death:         Callback opcional invocado cuando current llega a 0.
+        current:          Valor actual.
+        maximum:          Valor máximo.
+        regen_per_second: Cambio automático por segundo (puede ser negativo).
+        on_empty:         Callback opcional invocado cuando current llega a 0.
         on_change:        Callback opcional invocado con (prev, current) en
                           cada cambio de valor.
     """
@@ -24,15 +23,15 @@ class EntityHealth:
         maximum: float,
         current: Optional[float] = None,
         regen_per_second: float = 0.0,
-        on_death: Optional[Callable[[], None]] = None,
+        on_empty: Optional[Callable[[], None]] = None,
         on_change: Optional[Callable[[float, float], None]] = None,
     ) -> None:
         """
         Args:
-            maximum:          Salud máxima. Debe ser > 0.
-            current:          Salud inicial. Por defecto igual a maximum.
-            regen_per_second: Salud ganada/perdida por segundo automáticamente.
-            on_death:         Llamado cuando la salud llega a 0.
+            maximum:          Valor máximo. Debe ser > 0.
+            current:          Valor inicial. Por defecto igual a maximum.
+            regen_per_second: Valor ganado/perdido por segundo automáticamente.
+            on_empty:         Llamado cuando el valor llega a 0.
             on_change:        Llamado con (valor_anterior, valor_nuevo) en cada cambio.
         """
         if maximum <= 0:
@@ -41,7 +40,7 @@ class EntityHealth:
         self.maximum:          float = maximum
         self._current:         float = current if current is not None else maximum
         self.regen_per_second: float = regen_per_second
-        self.on_death:         Optional[Callable[[], None]]             = on_death
+        self.on_empty:         Optional[Callable[[], None]]             = on_empty
         self.on_change:        Optional[Callable[[float, float], None]] = on_change
 
         self._current = max(0.0, min(self._current, self.maximum))
@@ -59,42 +58,42 @@ class EntityHealth:
         self._set(value)
 
     @property
-    def is_alive(self) -> bool:
-        """True mientras la salud sea mayor que cero."""
-        return self._current > 0.0
+    def is_empty(self) -> bool:
+        """True cuando el valor es cero."""
+        return self._current <= 0.0
 
     @property
     def is_full(self) -> bool:
-        """True cuando la salud está al máximo."""
+        """True cuando el valor está al máximo."""
         return self._current >= self.maximum
 
     @property
     def percentage(self) -> float:
-        """Salud actual como fracción de 0.0 a 1.0."""
+        """Valor actual como fracción de 0.0 a 1.0."""
         return self._current / self.maximum
 
     # ------------------------------------------------------------------
     # Modificadores
     # ------------------------------------------------------------------
 
-    def damage(self, amount: float) -> float:
+    def decrease(self, amount: float) -> float:
         """
-        Reduce la salud en *amount* (debe ser positivo).
+        Reduce el valor en *amount* (debe ser positivo).
 
         Returns:
-            Daño real aplicado (puede ser menor si la salud llega a 0).
+            Reducción real aplicada (puede ser menor si llega a 0).
         """
         amount = max(0.0, amount)
         prev = self._current
         self._set(self._current - amount)
         return prev - self._current
 
-    def heal(self, amount: float) -> float:
+    def increase(self, amount: float) -> float:
         """
-        Incrementa la salud en *amount* (debe ser positivo), sin superar maximum.
+        Incrementa el valor en *amount* (debe ser positivo), sin superar maximum.
 
         Returns:
-            Cantidad real curada (puede ser menor si ya estaba casi llena).
+            Cantidad real incrementada (puede ser menor si ya estaba casi llena).
         """
         amount = max(0.0, amount)
         prev = self._current
@@ -103,7 +102,7 @@ class EntityHealth:
 
     def set_maximum(self, new_max: float, scale_current: bool = False) -> None:
         """
-        Cambia el máximo de salud.
+        Cambia el valor máximo.
 
         Args:
             new_max:       Nuevo valor máximo (debe ser > 0).
@@ -117,10 +116,10 @@ class EntityHealth:
             self._set(self.maximum * ratio)
         else:
             self.maximum = new_max
-            self._set(self._current)   # re-clamp
+            self._set(self._current)  # re-clamp
 
     def reset(self) -> None:
-        """Restaura la salud al máximo."""
+        """Restaura el valor al máximo."""
         self._set(self.maximum)
 
     # ------------------------------------------------------------------
@@ -136,7 +135,7 @@ class EntityHealth:
         Args:
             delta_time: Tiempo transcurrido desde el último frame en segundos.
         """
-        if self.regen_per_second != 0.0 and self.is_alive:
+        if self.regen_per_second != 0.0 and not self.is_empty:
             self._set(self._current + self.regen_per_second * delta_time)
 
     # ------------------------------------------------------------------
@@ -150,8 +149,8 @@ class EntityHealth:
         if self._current != prev:
             if self.on_change is not None:
                 self.on_change(prev, self._current)
-            if self._current == 0.0 and self.on_death is not None:
-                self.on_death()
+            if self._current == 0.0 and self.on_empty is not None:
+                self.on_empty()
 
     # ------------------------------------------------------------------
     # Utilidades
@@ -159,7 +158,7 @@ class EntityHealth:
 
     def __repr__(self) -> str:
         return (
-            f"EntityHealth(current={self._current:.1f}, "
+            f"{self.__class__.__name__}(current={self._current:.1f}, "
             f"maximum={self.maximum:.1f}, "
             f"regen={self.regen_per_second:+.2f}/s)"
         )
