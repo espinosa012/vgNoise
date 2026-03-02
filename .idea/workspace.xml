@@ -4,16 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="1b3760f7-cbcd-414c-ae5d-16d36f91ad5c" name="Changes" comment="spline points and more">
-      <change afterPath="$PROJECT_DIR$/src/core/character/renderer.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/core/item/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/core/item/item.py" afterDir="false" />
+    <list default="true" id="1b3760f7-cbcd-414c-ae5d-16d36f91ad5c" name="Changes" comment="character and pathfinding">
+      <change afterPath="$PROJECT_DIR$/src/core/health/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/core/health/entity_health.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/core/character/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/character/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/core/character/base.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/character/base.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/game/character/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/game/character/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/game/character/character.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/game/test_scenes/character_test_scene.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/game/test_scenes/character_test_scene.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/core/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/core/item/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/item/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/core/item/item.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/item/item.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -158,7 +155,7 @@
       <workItem from="1772281256831" duration="71000" />
       <workItem from="1772281338859" duration="228000" />
       <workItem from="1772281831440" duration="51017000" />
-      <workItem from="1772477561724" duration="1334000" />
+      <workItem from="1772477561724" duration="3210000" />
     </task>
     <task id="LOCAL-00001" summary="fisrt commit">
       <option name="closed" value="true" />
@@ -512,14 +509,21 @@
       <option name="project" value="LOCAL" />
       <updated>1772477541754</updated>
     </task>
-    <option name="localTasksCounter" value="45" />
+    <task id="LOCAL-00045" summary="character and pathfinding">
+      <option name="closed" value="true" />
+      <created>1772478913865</created>
+      <option name="number" value="00045" />
+      <option name="presentableId" value="LOCAL-00045" />
+      <option name="project" value="LOCAL" />
+      <updated>1772478913865</updated>
+    </task>
+    <option name="localTasksCounter" value="46" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="project refactoring, new tilemap and ui tools" />
     <MESSAGE value="color class" />
     <MESSAGE value="removing tile" />
     <MESSAGE value="handling transparences" />
@@ -544,7 +548,8 @@
     <MESSAGE value="pipeline first approach" />
     <MESSAGE value="improving" />
     <MESSAGE value="spline points and more" />
-    <option name="LAST_COMMIT_MESSAGE" value="spline points and more" />
+    <MESSAGE value="character and pathfinding" />
+    <option name="LAST_COMMIT_MESSAGE" value="character and pathfinding" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
